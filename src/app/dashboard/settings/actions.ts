@@ -62,11 +62,14 @@ export async function updateProfileAction(_prev: ProfileState, fd: FormData): Pr
   if (name) patch.displayName = name;
   if (performer.role === "owner") {
     const type: PromptPayType = fd.get("promptpayType") === "national_id" ? "national_id" : "phone";
-    const id = String(fd.get("promptpayId") ?? "");
-    if (!isValidPromptPay(type, id)) errors.promptpayId = "เลขพร้อมเพย์ไม่ถูกต้อง";
-    else {
-      patch.promptpayType = type;
-      patch.promptpayId = id;
+    const id = String(fd.get("promptpayId") ?? "").trim();
+    // Blank means "unchanged": the stored number is never sent to the client.
+    if (id !== "") {
+      if (!isValidPromptPay(type, id)) errors.promptpayId = "เลขพร้อมเพย์ไม่ถูกต้อง";
+      else {
+        patch.promptpayType = type;
+        patch.promptpayId = id;
+      }
     }
   }
   if (errors.displayName || errors.promptpayId) return { errors };

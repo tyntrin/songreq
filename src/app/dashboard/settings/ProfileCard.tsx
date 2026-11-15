@@ -40,7 +40,7 @@ export function ProfileCard({
     <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface px-4 py-3.5">
       <div className="flex items-center gap-3.5">
         {editing ? (
-          <AvatarUpload action={uploadAvatarAction} initialUrl={avatarUrl} initial={name.slice(0, 2)} />
+          <AvatarUpload action={uploadAvatarAction} initialUrl={avatarUrl} initial={Array.from(name).slice(0, 2).join("")} />
         ) : (
           <>
             <div
@@ -112,7 +112,7 @@ export function ProfileCard({
                   {err.promptpayId}
                 </p>
               ) : (
-                <p className="text-[13px] text-muted">ใส่เลขใหม่ทุกครั้งที่บันทึก ปัจจุบัน {masked}</p>
+                <p className="text-[13px] text-muted">ปัจจุบัน {masked} เว้นว่างไว้ถ้าไม่เปลี่ยน</p>
               )}
             </div>
           ) : (

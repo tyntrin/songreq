@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
 import { performerMembers, performers, setlists, users } from "@/lib/db/schema";
 import {
@@ -239,7 +239,7 @@ export async function listMembers(
     .from(performerMembers)
     .innerJoin(users, eq(users.id, performerMembers.userId))
     .where(eq(performerMembers.performerId, performerId))
-    .orderBy(asc(performerMembers.role), asc(users.name));
+    .orderBy(sql`case when ${performerMembers.role} = 'owner' then 0 else 1 end`, asc(users.name));
   return rows.map((r) => ({
     userId: r.userId,
     name: r.name || r.email?.split("@")[0] || "ไม่ระบุชื่อ",

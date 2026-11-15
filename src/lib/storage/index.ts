@@ -97,5 +97,5 @@ export async function saveAvatar(input: { bytes: Uint8Array; contentType: string
 export function isOwnAvatarUrl(url: string, env: Env = process.env): boolean {
   if (url.startsWith("/api/uploads/")) return isSafeUploadName(url.slice("/api/uploads/".length));
   const base = (env.R2_PUBLIC_URL ?? "").replace(/\/+$/, "");
-  return env.STORAGE_DRIVER === "r2" && base !== "" && url.startsWith(`${base}/`) && !url.slice(base.length + 1).includes("/");
+  return env.STORAGE_DRIVER === "r2" && base !== "" && url.startsWith(`${base}/`) && isSafeUploadName(url.slice(base.length + 1));
 }

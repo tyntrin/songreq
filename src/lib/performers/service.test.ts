@@ -115,3 +115,15 @@ describe("removeMember", () => {
     expect((await listMyPerformers(db, "b")).length).toBe(0);
   });
 });
+
+describe("listMembers", () => {
+  it("lists owner first", async () => {
+    const { listMembers } = await import("./service");
+    const db = await createTestDb();
+    await db.insert(users).values({ id: "a", name: "Zed", email: "a@x.test" });
+    await db.insert(users).values({ id: "b", name: "Amy", email: "b@x.test" });
+    const p = (await createPerformer(db, "a", { displayName: "B", promptpayType: "phone", promptpayId: "0812345678" })).performer;
+    await db.insert(performerMembers).values({ performerId: p.id, userId: "b", role: "member" });
+    expect((await listMembers(db, p.id)).map((m) => m.role)).toEqual(["owner", "member"]);
+  });
+});

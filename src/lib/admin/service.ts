@@ -1,4 +1,4 @@
-import { count, desc, eq, gte, sql } from "drizzle-orm";
+import { count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
 import { performerMembers, performers, requestItems, requests, songs } from "@/lib/db/schema";
 
@@ -38,7 +38,7 @@ export async function getAdminOverview(db: Db, now: Date) {
         .select({ requestId: requestItems.requestId, title: songs.title, artist: songs.artist })
         .from(requestItems)
         .innerJoin(songs, eq(songs.id, requestItems.songId))
-        .where(sql`${requestItems.requestId} in ${ids}`)
+        .where(inArray(requestItems.requestId, ids))
     : [];
   return {
     totals: { performers: p.n, last7Days: w.n, allTime: a.n },

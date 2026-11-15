@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { requireUser } from "@/lib/auth/session";
 import { getAdminOverview } from "@/lib/admin/service";
+import { ConfirmForm } from "./ConfirmForm";
 import { deleteRequestAction, setSuspendedAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -95,12 +96,12 @@ export default async function AdminPage() {
                     {r.message && <div className="text-muted">{r.message}</div>}
                   </td>
                   <td className={td}>
-                    <form action={deleteRequestAction}>
+                    <ConfirmForm action={deleteRequestAction} message="ลบคำขอนี้ถาวร? กู้คืนไม่ได้">
                       <input type="hidden" name="requestId" value={r.id} />
                       <button type="submit" className="h-11 rounded-full border border-line-strong px-3.5 text-[13px] font-semibold text-[#E39B8B]">
                         ลบ
                       </button>
-                    </form>
+                    </ConfirmForm>
                   </td>
                 </tr>
               ))}

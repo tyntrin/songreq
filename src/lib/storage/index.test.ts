@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ValidationError } from "@/lib/validation/text";
-import { getStorage, isSafeUploadName, saveAvatar } from "./index";
+import { getStorage, isOwnAvatarUrl, isSafeUploadName, saveAvatar } from "./index";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 let dir: string;
@@ -56,6 +56,13 @@ describe("driver selection", () => {
       R2_PUBLIC_URL: "https://cdn.example.com/",
     });
     expect(r2.name).toBe("r2");
+  });
+  it("own-url check covers r2 keys", () => {
+    const env = { STORAGE_DRIVER: "r2", R2_PUBLIC_URL: "https://cdn.x.com" };
+    const ok = "11111111-1111-1111-1111-111111111111.png";
+    expect(isOwnAvatarUrl(`https://cdn.x.com/${ok}`, env)).toBe(true);
+    expect(isOwnAvatarUrl("https://cdn.x.com/evil.html", env)).toBe(false);
+    expect(isOwnAvatarUrl("https://evil.com/" + ok, env)).toBe(false);
   });
   it("safe-name check", () => {
     expect(isSafeUploadName("../etc/passwd")).toBe(false);
