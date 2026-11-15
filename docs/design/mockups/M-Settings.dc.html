@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ตั้งค่า</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD27F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #14110F; color: #F4EFE8; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif">
+  <div style="height: 844px; overflow-y: auto; padding: 18px 16px 110px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+
+    <h1 style="margin: 0; font-size: 22px; font-weight: 700">ตั้งค่า</h1>
+
+    <div style="display: flex; align-items: center; gap: 14px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 16px; padding: 14px 16px">
+      <div aria-hidden="true" style="width: 52px; height: 52px; border-radius: 50%; background: #2B2420; border: 2px solid #F5B544; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 700; color: #F5B544">พบ</div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 17px; font-weight: 700">วงเพื่อนบ้าน</div>
+        <div style="font-size: 14px; color: #A89F94">พร้อมเพย์ xxx-xxx-4821</div>
+      </div>
+      <button style="height: 40px; padding: 0 14px; border-radius: 999px; background: transparent; border: 1px solid #3A322C; color: #F4EFE8; font: inherit; font-size: 14px; font-weight: 600">แก้ไข</button>
+    </div>
+
+    <section style="display: flex; flex-direction: column; background: #1F1B18; border: 1px solid #2E2723; border-radius: 16px; padding: 4px 16px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #2E2723">
+        <div style="flex: 1">
+          <div style="font-size: 16px; font-weight: 600">รับขอเพลง</div>
+          <div style="font-size: 13px; color: #A89F94">{{acceptHint}}</div>
+        </div>
+        <button role="switch" aria-checked="{{accept}}" aria-label="รับขอเพลง" onClick="{{toggleAccept}}" style="{{acceptTrack}}">
+          <span style="{{acceptKnob}}"></span>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0">
+        <div style="flex: 1">
+          <div style="font-size: 16px; font-weight: 600">เสียงแจ้งเตือนคำขอใหม่</div>
+          <div style="font-size: 13px; color: #A89F94">ดังตอนเปิดจอคำขอไว้</div>
+        </div>
+        <button role="switch" aria-checked="{{sound}}" aria-label="เสียงแจ้งเตือนคำขอใหม่" onClick="{{toggleSound}}" style="{{soundTrack}}">
+          <span style="{{soundKnob}}"></span>
+        </button>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 4px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 16px; padding: 14px 16px">
+      <h2 style="margin: 0 0 6px; font-size: 16px; font-weight: 700">สมาชิกวง</h2>
+      <sc-for list="{{members}}" as="m" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0">
+          <div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: #2B2420; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #C9C0B5">{{m.initial}}</div>
+          <div style="flex: 1; font-size: 15px">{{m.name}}</div>
+          <span style="font-size: 13px; color: #A89F94">{{m.role}}</span>
+        </div>
+      </sc-for>
+      <button style="margin-top: 8px; height: 46px; border-radius: 12px; background: transparent; border: 1px dashed #5A4F45; color: #F4EFE8; font: inherit; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
+        ส่งลิงก์เชิญสมาชิก
+      </button>
+    </section>
+
+    <a href="M-Login.dc.html" style="align-self: center; padding: 10px; font-size: 15px; color: #E39B8B">ออกจากระบบ</a>
+  </div>
+
+  <nav aria-label="เมนูหลัก" style="position: absolute; left: 0; right: 0; bottom: 0; height: 82px; padding: 8px 8px 22px; box-sizing: border-box; background: #1B1714; border-top: 1px solid #2E2723; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+    <a href="M-Monitor.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      คำขอ
+    </a>
+    <a href="M-Songs.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+      เพลง
+    </a>
+    <a href="M-Setlists.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"></path></svg>
+      QR
+    </a>
+    <a href="M-Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+      สถิติ
+    </a>
+    <a href="M-Settings.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #F5B544; font-size: 12px; font-weight: 600">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      ตั้งค่า
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { accept: true, sound: true };
+  }
+  renderVals() {
+    const track = (on) => 'width: 52px; height: 32px; border-radius: 999px; border: 0; padding: 3px; flex-shrink: 0; cursor: pointer; display: flex; ' + (on ? 'background: #F5B544; justify-content: flex-end' : 'background: #3A322C; justify-content: flex-start');
+    const knob = (on) => 'width: 26px; height: 26px; border-radius: 50%; display: block; ' + (on ? 'background: #1A1408' : 'background: #A89F94');
+    const { accept, sound } = this.state;
+    return {
+      accept,
+      sound,
+      acceptHint: accept ? 'QR ทุกอันรับคำขออยู่' : 'ลูกค้าดูเพลงได้ แต่ขอไม่ได้',
+      acceptTrack: track(accept),
+      acceptKnob: knob(accept),
+      soundTrack: track(sound),
+      soundKnob: knob(sound),
+      toggleAccept: () => this.setState({ accept: !this.state.accept }),
+      toggleSound: () => this.setState({ sound: !this.state.sound }),
+      members: [
+        { initial: 'ต', name: 'ต้น (คุณ)', role: 'เจ้าของ' },
+        { initial: 'บ', name: 'บอส', role: 'สมาชิก' },
+        { initial: 'น', name: 'นุ่น', role: 'สมาชิก' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

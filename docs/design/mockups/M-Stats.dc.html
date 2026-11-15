@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>สถิติ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD27F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #14110F; color: #F4EFE8; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif">
+  <div style="height: 844px; overflow-y: auto; padding: 18px 16px 110px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+
+    <h1 style="margin: 0; font-size: 22px; font-weight: 700">สถิติ</h1>
+
+    <div role="group" aria-label="ช่วงเวลา" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 999px; padding: 4px">
+      <sc-for list="{{periods}}" as="p" hint-placeholder-count="3">
+        <button onClick="{{p.pick}}" aria-pressed="{{p.on}}" style="{{p.style}}">{{p.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div style="background: #1F1B18; border: 1px solid #2E2723; border-radius: 14px; padding: 12px">
+        <div style="font-size: 12px; color: #A89F94">คำขอ</div>
+        <div style="font-size: 24px; font-weight: 700">{{d.reqs}}</div>
+      </div>
+      <div style="background: #1F1B18; border: 1px solid #2E2723; border-radius: 14px; padding: 12px">
+        <div style="font-size: 12px; color: #A89F94">ทิปที่แจ้ง</div>
+        <div style="font-size: 24px; font-weight: 700; color: #F5B544">฿{{d.tips}}</div>
+      </div>
+      <div style="background: #1F1B18; border: 1px solid #2E2723; border-radius: 14px; padding: 12px">
+        <div style="font-size: 12px; color: #A89F94">คืนที่เล่น</div>
+        <div style="font-size: 24px; font-weight: 700">{{d.nights}}</div>
+      </div>
+    </div>
+    <p style="margin: -6px 0 0; font-size: 12px; color: #8A8178">ยอดทิปคือที่ลูกค้ากด "โอนแล้ว" ระบบไม่ได้ตรวจกับธนาคาร</p>
+
+    <section style="display: flex; flex-direction: column; gap: 10px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 16px; padding: 16px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 700">เพลงที่ถูกขอบ่อย</h2>
+      <sc-for list="{{d.top}}" as="t" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 14px">
+            <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+            <span style="color: #A89F94; flex-shrink: 0">{{t.n}} ครั้ง</span>
+          </div>
+          <div style="height: 8px; border-radius: 4px; background: #2B2420">
+            <div style="{{t.bar}}"></div>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 4px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 16px; padding: 16px">
+      <h2 style="margin: 0 0 6px; font-size: 16px; font-weight: 700">แยกตาม QR</h2>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2E2723; font-size: 15px">
+        <span>The Porch</span><span style="color: #A89F94">{{d.v1}} คำขอ</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px">
+        <span>งานแต่ง / อีเวนต์</span><span style="color: #A89F94">{{d.v2}} คำขอ</span>
+      </div>
+    </section>
+  </div>
+
+  <nav aria-label="เมนูหลัก" style="position: absolute; left: 0; right: 0; bottom: 0; height: 82px; padding: 8px 8px 22px; box-sizing: border-box; background: #1B1714; border-top: 1px solid #2E2723; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+    <a href="M-Monitor.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      คำขอ
+    </a>
+    <a href="M-Songs.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+      เพลง
+    </a>
+    <a href="M-Setlists.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"></path></svg>
+      QR
+    </a>
+    <a href="M-Stats.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #F5B544; font-size: 12px; font-weight: 600">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+      สถิติ
+    </a>
+    <a href="M-Settings.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      ตั้งค่า
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { p: 'month' };
+  }
+  renderVals() {
+    const data = {
+      night: { reqs: 12, tips: '350', nights: 1, v1: 12, v2: 0, top: [['วาฬเกยตื้น', 3], ['ทางของฝุ่น', 2], ['Fix You', 2], ['Perfect', 1], ['Shallow', 1]] },
+      week: { reqs: 41, tips: '1,280', nights: 3, v1: 29, v2: 12, top: [['วาฬเกยตื้น', 7], ['ทางของฝุ่น', 6], ['Perfect', 5], ['Fix You', 4], ['ซ่อนกลิ่น', 3]] },
+      month: { reqs: 156, tips: '4,920', nights: 11, v1: 118, v2: 38, top: [['ทางของฝุ่น', 21], ['วาฬเกยตื้น', 18], ['Perfect', 15], ['Fix You', 12], ['ซ่อนกลิ่น', 9]] }
+    };
+    const raw = data[this.state.p];
+    const max = raw.top[0][1];
+    const d = {
+      ...raw,
+      top: raw.top.map(([title, n]) => ({
+        title,
+        n,
+        bar: 'height: 8px; border-radius: 4px; background: #F5B544; width: ' + Math.round((n / max) * 100) + '%'
+      }))
+    };
+    const base = 'height: 38px; border-radius: 999px; border: 0; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; ';
+    const opts = [['night', 'คืนนี้'], ['week', '7 วัน'], ['month', 'เดือนนี้']];
+    const periods = opts.map(([id, label]) => ({
+      label,
+      on: this.state.p === id,
+      style: base + (this.state.p === id ? 'background: #F5B544; color: #1A1408' : 'background: transparent; color: #C9C0B5'),
+      pick: () => this.setState({ p: id })
+    }));
+    return { d, periods };
+  }
+}
+</script>
+</body>
+</html>

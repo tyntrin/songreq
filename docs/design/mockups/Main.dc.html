@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>รายการเพลง</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD27F}
+input::placeholder{color:#8A8178}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #14110F; color: #F4EFE8; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif">
+  <div style="height: 760px; overflow-y: auto; padding: 20px 20px 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+    <div style="display: flex; justify-content: flex-end">
+      <button style="background: transparent; border: 1px solid #3A322C; color: #C9C0B5; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; min-height: 32px">TH · EN</button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px">
+      <div aria-hidden="true" style="width: 60px; height: 60px; border-radius: 50%; background: #2B2420; border: 2px solid #F5B544; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #F5B544">พบ</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <h1 style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700">วงเพื่อนบ้าน</h1>
+        <div style="display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; background: #24301F; color: #A8E08F; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 600">
+          <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #7FD35E"></span>
+          เปิดรับขอเพลง
+        </div>
+      </div>
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 10px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 14px; padding: 0 14px; height: 48px">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">ค้นหาเพลง</span>
+      <input type="search" placeholder="ค้นหาเพลงหรือศิลปิน" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #F4EFE8; font: inherit; font-size: 16px">
+    </label>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <button style="background: #F5B544; color: #1A1408; border: 0; border-radius: 999px; padding: 0 14px; height: 36px; font: inherit; font-size: 14px; font-weight: 600">ทั้งหมด 48</button>
+      <button style="background: #1F1B18; color: #E4DCD2; border: 1px solid #2E2723; border-radius: 999px; padding: 0 14px; height: 36px; font: inherit; font-size: 14px">ไทย</button>
+      <button style="background: #1F1B18; color: #E4DCD2; border: 1px solid #2E2723; border-radius: 999px; padding: 0 14px; height: 36px; font: inherit; font-size: 14px">สากล</button>
+      <button style="background: #1F1B18; color: #E4DCD2; border: 1px solid #2E2723; border-radius: 999px; padding: 0 14px; height: 36px; font: inherit; font-size: 14px">เพลงช้า</button>
+      <button style="background: #1F1B18; color: #E4DCD2; border: 1px solid #2E2723; border-radius: 999px; padding: 0 14px; height: 36px; font: inherit; font-size: 14px">มันส์ ๆ</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{songs}}" as="s" hint-placeholder-count="10">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #26201C">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.title}}</div>
+            <div style="font-size: 14px; color: #A89F94; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.artist}}</div>
+          </div>
+          <button onClick="{{s.toggle}}" aria-label="{{s.label}}" aria-pressed="{{s.on}}" style="{{s.btnStyle}}">
+            <sc-if value="{{s.on}}" hint-placeholder-val="{{ false }}">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1408" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            </sc-if>
+            <sc-if value="{{s.off}}" hint-placeholder-val="{{ true }}">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4EFE8" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            </sc-if>
+          </button>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 20px 30px; background: #1B1714; border-top: 1px solid #2E2723; display: flex; align-items: center; gap: 14px">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 16px; font-weight: 600">เลือกแล้ว {{count}} เพลง</div>
+      <div style="font-size: 13px; color: #A89F94">ขอได้หลายเพลงพร้อมกัน</div>
+    </div>
+    <a href="Details.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 52px; padding: 0 26px; border-radius: 14px; background: #F5B544; color: #1A1408; font-size: 17px; font-weight: 700; text-decoration: none">
+      ถัดไป
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1408" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: { t3: true, t5: true } };
+  }
+  renderVals() {
+    const list = [
+      { id: 't1', title: 'Fix You', artist: 'Coldplay' },
+      { id: 't2', title: 'เพื่อนเล่นไม่เล่นเพื่อน', artist: 'Tilly Birds' },
+      { id: 't3', title: 'ทางของฝุ่น', artist: 'Atom ชนกันต์' },
+      { id: 't4', title: 'Yellow', artist: 'Coldplay' },
+      { id: 't5', title: 'Perfect', artist: 'Ed Sheeran' },
+      { id: 't6', title: 'วาฬเกยตื้น', artist: 'GUNGUN' },
+      { id: 't7', title: 'ซ่อนกลิ่น', artist: 'Palmy' },
+      { id: 't8', title: 'Shallow', artist: 'Lady Gaga, Bradley Cooper' },
+      { id: 't9', title: 'ถ้าเราเจอกันอีก', artist: 'Tilly Birds' },
+      { id: 't10', title: 'เล่นของสูง', artist: 'Big Ass' }
+    ];
+    const sel = this.state.sel;
+    const onStyle = 'width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: #F5B544; display: flex; align-items: center; justify-content: center';
+    const offStyle = 'width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 1px solid #3A322C; background: #1F1B18; display: flex; align-items: center; justify-content: center';
+    const songs = list.map((s) => {
+      const on = !!sel[s.id];
+      return {
+        ...s,
+        on,
+        off: !on,
+        label: (on ? 'เอาออก: ' : 'เลือก: ') + s.title,
+        btnStyle: on ? onStyle : offStyle,
+        toggle: () => this.setState({ sel: { ...this.state.sel, [s.id]: !on } })
+      };
+    });
+    const count = Object.values(sel).filter(Boolean).length;
+    return { songs, count };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>คลังเพลง</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD27F}
+input::placeholder{color:#8A8178}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #14110F; color: #F4EFE8; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif">
+  <div style="height: 844px; overflow-y: auto; padding: 18px 16px 110px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 700">คลังเพลง</h1>
+      <div style="font-size: 14px; color: #A89F94">{{total}} เพลง</div>
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 10px; background: #1F1B18; border: 1px solid #F5B544; border-radius: 14px; padding: 0 14px; height: 48px">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">ค้นหาเพลงเพื่อเพิ่ม</span>
+      <input type="search" value="Coldplay" placeholder="ค้นหาเพลงเพื่อเพิ่ม" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #F4EFE8; font: inherit; font-size: 16px">
+    </label>
+
+    <section style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #A89F94">ผลการค้นหา</h2>
+      <sc-for list="{{results}}" as="s" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #26201C">
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 16px; font-weight: 600">{{s.title}}</div>
+            <div style="font-size: 14px; color: #A89F94">{{s.artist}}</div>
+          </div>
+          <button onClick="{{s.toggle}}" aria-pressed="{{s.on}}" style="{{s.style}}">{{s.label}}</button>
+        </div>
+      </sc-for>
+      <button style="margin-top: 8px; height: 48px; border-radius: 14px; background: transparent; border: 1px dashed #5A4F45; color: #F4EFE8; font: inherit; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        ไม่เจอเพลงที่หา? เพิ่มเอง
+      </button>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 4px">
+      <h2 style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #A89F94">เพลงของฉัน</h2>
+      <sc-for list="{{mine}}" as="m" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #26201C">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+            <div>
+              <div style="font-size: 16px; font-weight: 600">{{m.title}}</div>
+              <div style="font-size: 14px; color: #A89F94">{{m.artist}}</div>
+            </div>
+            <div style="display: flex; gap: 6px">
+              <span style="background: #26211D; color: #E4DCD2; border-radius: 6px; padding: 1px 8px; font-size: 12px">คีย์ {{m.key}}</span>
+              <span style="background: #26211D; color: #E4DCD2; border-radius: 6px; padding: 1px 8px; font-size: 12px">{{m.tag}}</span>
+            </div>
+          </div>
+          <button aria-label="ตัวเลือกเพิ่มเติม: {{m.title}}" style="width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; display: flex; align-items: center; justify-content: center">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="#A89F94"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+          </button>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+
+  <nav aria-label="เมนูหลัก" style="position: absolute; left: 0; right: 0; bottom: 0; height: 82px; padding: 8px 8px 22px; box-sizing: border-box; background: #1B1714; border-top: 1px solid #2E2723; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+    <a href="M-Monitor.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      คำขอ
+    </a>
+    <a href="M-Songs.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #F5B544; font-size: 12px; font-weight: 600">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+      เพลง
+    </a>
+    <a href="M-Setlists.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"></path></svg>
+      QR
+    </a>
+    <a href="M-Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+      สถิติ
+    </a>
+    <a href="M-Settings.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      ตั้งค่า
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { added: { r1: true, r2: true } };
+  }
+  renderVals() {
+    const res = [
+      { id: 'r1', title: 'Yellow', artist: 'Coldplay' },
+      { id: 'r2', title: 'Fix You', artist: 'Coldplay' },
+      { id: 'r3', title: 'The Scientist', artist: 'Coldplay' },
+      { id: 'r4', title: 'Viva la Vida', artist: 'Coldplay' },
+      { id: 'r5', title: 'Clocks', artist: 'Coldplay' }
+    ];
+    const base = 'flex-shrink: 0; height: 40px; min-width: 88px; padding: 0 14px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; ';
+    const on = base + 'background: transparent; color: #A89F94; border: 1px solid #3A322C';
+    const off = base + 'background: #F5B544; color: #1A1408; border: 1px solid #F5B544';
+    const added = this.state.added;
+    const results = res.map((r) => {
+      const isOn = !!added[r.id];
+      return {
+        ...r,
+        on: isOn,
+        label: isOn ? 'มีแล้ว' : '+ เพิ่ม',
+        style: isOn ? on : off,
+        toggle: () => this.setState({ added: { ...this.state.added, [r.id]: !isOn } })
+      };
+    });
+    const extra = Object.values(added).filter(Boolean).length - 2;
+    return {
+      results,
+      total: 48 + extra,
+      mine: [
+        { title: 'ทางของฝุ่น', artist: 'Atom ชนกันต์', key: 'G', tag: 'ช้า' },
+        { title: 'Perfect', artist: 'Ed Sheeran', key: 'Ab', tag: 'ช้า' },
+        { title: 'วาฬเกยตื้น', artist: 'GUNGUN', key: 'C', tag: 'กลาง' },
+        { title: 'เล่นของสูง', artist: 'Big Ass', key: 'E', tag: 'มันส์' },
+        { title: 'Shallow', artist: 'Lady Gaga, Bradley Cooper', key: 'G', tag: 'คู่' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

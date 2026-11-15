@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Setlist และ QR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD27F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #14110F; color: #F4EFE8; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif">
+  <div style="height: 844px; overflow-y: auto; padding: 18px 16px 110px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 700">Setlist และ QR</h1>
+      <p style="margin: 0; font-size: 14px; color: #A89F94; line-height: 1.5">เล่นหลายร้าน ใช้ QR แยกกัน ระบบแยกคำขอให้เอง</p>
+    </div>
+
+    <article style="display: flex; flex-direction: column; gap: 14px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 18px; padding: 16px">
+      <div style="display: flex; gap: 14px">
+        <div aria-label="ตัวอย่างโปสเตอร์ QR" role="img" style="width: 112px; height: 150px; flex-shrink: 0; border-radius: 10px; background: #14110F; border: 1px solid #3A322C; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px; box-sizing: border-box">
+          <div style="font-size: 10px; font-weight: 700; color: #F5B544">สแกนขอเพลง</div>
+          <div style="width: 70px; height: 70px; background: #FFFFFF; border-radius: 6px; padding: 5px; box-sizing: border-box; display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); grid-template-rows: repeat(11, minmax(0, 1fr))">
+            <sc-for list="{{qr}}" as="c" hint-placeholder-count="121">
+              <div style="{{c.style}}"></div>
+            </sc-for>
+          </div>
+          <div style="font-size: 11px; font-weight: 700; text-align: center">วงเพื่อนบ้าน</div>
+        </div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 19px; font-weight: 700">The Porch</h2>
+          <div style="font-size: 14px; color: #A89F94">32 เพลง</div>
+          <div style="font-size: 14px; color: #A89F94">คำขอคืนนี้ <span style="color: #F5B544; font-weight: 600">12</span></div>
+          <a href="M-Songs.dc.html" style="margin-top: auto; font-size: 14px; font-weight: 600">แก้รายการเพลง</a>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <button style="height: 46px; border-radius: 12px; background: #F5B544; color: #1A1408; border: 0; font: inherit; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1408" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+          โปสเตอร์ A5
+        </button>
+        <button style="height: 46px; border-radius: 12px; background: #14110F; color: #F4EFE8; border: 1px solid #3A322C; font: inherit; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
+          คัดลอกลิงก์
+        </button>
+      </div>
+    </article>
+
+    <article style="display: flex; align-items: center; gap: 14px; background: #1F1B18; border: 1px solid #2E2723; border-radius: 18px; padding: 16px">
+      <div aria-hidden="true" style="width: 48px; height: 48px; border-radius: 10px; background: #26211D; display: flex; align-items: center; justify-content: center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM17 17h4v4"></path></svg>
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 700">งานแต่ง / อีเวนต์</h2>
+        <div style="font-size: 14px; color: #A89F94">20 เพลง · ยังไม่มีคำขอคืนนี้</div>
+      </div>
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+    </article>
+
+    <button style="height: 52px; border-radius: 14px; background: transparent; border: 1px dashed #5A4F45; color: #F4EFE8; font: inherit; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      สร้าง setlist ใหม่
+    </button>
+  </div>
+
+  <nav aria-label="เมนูหลัก" style="position: absolute; left: 0; right: 0; bottom: 0; height: 82px; padding: 8px 8px 22px; box-sizing: border-box; background: #1B1714; border-top: 1px solid #2E2723; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+    <a href="M-Monitor.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      คำขอ
+    </a>
+    <a href="M-Songs.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+      เพลง
+    </a>
+    <a href="M-Setlists.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #F5B544; font-size: 12px; font-weight: 600">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4"></path></svg>
+      QR
+    </a>
+    <a href="M-Stats.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+      สถิติ
+    </a>
+    <a href="M-Settings.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; color: #A89F94; font-size: 12px">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A89F94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      ตั้งค่า
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const n = 11;
+    const inFinder = (r, c, r0, c0) => {
+      const y = r - r0, x = c - c0;
+      if (y < 0 || x < 0 || y > 2 || x > 2) return null;
+      return !(y === 1 && x === 1) || true;
+    };
+    let seed = 3;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const qr = [];
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        let on = inFinder(r, c, 0, 0);
+        if (on === null) on = inFinder(r, c, 0, n - 3);
+        if (on === null) on = inFinder(r, c, n - 3, 0);
+        if (on === null) on = rnd() > 0.5;
+        qr.push({ style: on ? 'background: #14110F' : 'background: transparent' });
+      }
+    }
+    return { qr };
+  }
+}
+</script>
+</body>
+</html>
