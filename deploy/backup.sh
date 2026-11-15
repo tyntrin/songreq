@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # /opt/songreq/backup.sh -- nightly Postgres backup to Cloudflare R2 (run by cron as `songreq`).
 # Reads these keys from /opt/songreq/shared/.env:
-#   DATABASE_URL, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BACKUP_BUCKET
+#   DATABASE_URL, R2_ACCOUNT_ID, R2_BACKUP_BUCKET
+#   R2_BACKUP_ACCESS_KEY_ID / R2_BACKUP_SECRET_ACCESS_KEY (token scoped to the backup bucket;
+#   falls back to the app's R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY when unset)
 # R2_BACKUP_BUCKET must be a PRIVATE bucket (not the public avatars bucket).
 set -euo pipefail
 
 ENV_FILE="${ENV_FILE:-/opt/songreq/shared/.env}"
+NODE_BIN="${NODE_BIN:-/usr/bin/node}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 PREFIX="songreq-"
 
@@ -19,8 +22,11 @@ getenv() { # read KEY from the env file without sourcing it
 DATABASE_URL="$(getenv DATABASE_URL)"
 BUCKET="$(getenv R2_BACKUP_BUCKET)"
 ACCOUNT="$(getenv R2_ACCOUNT_ID)"
-export AWS_ACCESS_KEY_ID="$(getenv R2_ACCESS_KEY_ID)"
-export AWS_SECRET_ACCESS_KEY="$(getenv R2_SECRET_ACCESS_KEY)"
+AWS_ACCESS_KEY_ID="$(getenv R2_BACKUP_ACCESS_KEY_ID)"
+AWS_SECRET_ACCESS_KEY="$(getenv R2_BACKUP_SECRET_ACCESS_KEY)"
+[ -n "$AWS_ACCESS_KEY_ID" ] || AWS_ACCESS_KEY_ID="$(getenv R2_ACCESS_KEY_ID)"
+[ -n "$AWS_SECRET_ACCESS_KEY" ] || AWS_SECRET_ACCESS_KEY="$(getenv R2_SECRET_ACCESS_KEY)"
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 export AWS_DEFAULT_REGION=auto
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
 export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
@@ -35,7 +41,13 @@ trap 'rm -f "$TMP"' EXIT
 
 echo "$(date -u +%FT%TZ) dumping -> $NAME"
 # Dump to a temp file first so a failed dump is never uploaded as a "good" backup.
-pg_dump --no-owner --clean --if-exists "$DATABASE_URL" | gzip -9 > "$TMP"
+# Parse the URL into PG* env vars so the password never appears in argv (ps).
+eval "$("$NODE_BIN" -e '
+const u = new URL(process.argv[1]);
+const q = (s) => "\x27" + String(s).replace(/\x27/g, "\x27\\\x27\x27") + "\x27";
+console.log(`export PGHOST=${q(u.hostname)} PGPORT=${q(u.port || 5432)} PGUSER=${q(decodeURIComponent(u.username))} PGPASSWORD=${q(decodeURIComponent(u.password))} PGDATABASE=${q(decodeURIComponent(u.pathname.slice(1)))}`);
+' "$DATABASE_URL")"
+pg_dump --no-owner --clean --if-exists | gzip -9 > "$TMP"
 [ "$(stat -c %s "$TMP")" -gt 200 ] || { echo "dump looks empty" >&2; exit 1; }
 
 aws s3 cp "$TMP" "s3://${BUCKET}/${NAME}" --endpoint-url "$ENDPOINT" --only-show-errors
@@ -43,7 +55,7 @@ echo "$(date -u +%FT%TZ) uploaded $(du -h "$TMP" | cut -f1)"
 
 # Retention: object names carry their UTC date, so compare names against the cutoff.
 CUTOFF="${PREFIX}$(date -u -d "${RETENTION_DAYS} days ago" +%Y%m%d)-000000.sql.gz"
-aws s3 ls "s3://${BUCKET}/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | grep -E "^${PREFIX}[0-9]{8}-[0-9]{6}\.sql\.gz$" | while read -r obj; do
+aws s3 ls "s3://${BUCKET}/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | { grep -E "^${PREFIX}[0-9]{8}-[0-9]{6}\.sql\.gz$" || true; } | while read -r obj; do
   if [[ "$obj" < "$CUTOFF" ]]; then
     echo "$(date -u +%FT%TZ) deleting old backup $obj"
     aws s3 rm "s3://${BUCKET}/${obj}" --endpoint-url "$ENDPOINT" --only-show-errors

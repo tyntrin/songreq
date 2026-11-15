@@ -25,7 +25,7 @@
 
 ตรวจราคาล่าสุดได้ที่ https://cloud.google.com/vpc/network-pricing และเงื่อนไข Free Tier ที่ https://cloud.google.com/free/docs/free-cloud-features#compute
 
-**ข้อควรรู้เรื่องสถาปัตยกรรม**: แอปใช้ SSE กับ event bus ในโปรเซส จึง **ต้องรัน pm2 เพียง 1 โปรเซส** (fork mode) ห้ามเปลี่ยนเป็น cluster / หลาย instance และการ `pm2 reload` ในโหมดนี้ทำให้แอปดับสั้น ๆ (ไม่กี่วินาที) ระหว่าง deploy ลูกค้าที่เปิดหน้าไว้จะ reconnect เอง
+**ข้อควรรู้เรื่องสถาปัตยกรรม**: แอปใช้ SSE กับ event bus ในโปรเซส จึง **ต้องรัน pm2 เพียง 1 โปรเซส** (fork mode) ห้ามเปลี่ยนเป็น cluster / หลาย instance และ deploy ใช้ `pm2 startOrRestart` (fork mode ไม่มี reload แบบไม่หยุด) ซึ่งทำให้แอปดับสั้น ๆ (ไม่กี่วินาที) ระหว่าง deploy ลูกค้าที่เปิดหน้าไว้จะ reconnect เอง
 
 ---
 
@@ -181,7 +181,10 @@ sudo useradd --system --create-home --shell /bin/bash songreq
 sudo useradd --create-home --shell /bin/bash deploy
 
 sudo mkdir -p /opt/songreq/releases /opt/songreq/shared /var/log/songreq /var/lib/songreq/uploads
-sudo chown -R songreq:songreq /opt/songreq /var/log/songreq /var/lib/songreq
+# /opt/songreq เป็นของ root (กัน user songreq แก้ deploy.sh แล้วยกระดับสิทธิ์)
+# songreq เป็นเจ้าของเฉพาะ releases/ และ shared/ กับ log และ uploads
+sudo chown root:root /opt/songreq
+sudo chown -R songreq:songreq /opt/songreq/releases /opt/songreq/shared /var/log/songreq /var/lib/songreq
 sudo chmod 750 /opt/songreq/shared
 
 # SSH: key only
@@ -191,7 +194,7 @@ sudo systemctl reload ssh
 sudo systemctl enable --now fail2ban
 ```
 
-> `/opt/songreq` เป็นของ `songreq` แต่ `deploy.sh` กับ `current` จะถูกจัดการโดย root ตอน deploy
+> `deploy.sh`, `backup.sh`, `ecosystem.config.cjs` และ symlink `current` อยู่ใน `/opt/songreq` ที่เป็นของ root และถูกจัดการโดย root ตอน deploy
 
 สร้าง SSH key ให้ GitHub Actions (ทำบนเครื่องคุณ ไม่ใช่บน VM) แล้ววาง public key ให้ user `deploy`:
 
@@ -206,7 +209,9 @@ echo 'PASTE_PUBLIC_KEY_HERE' | sudo -u deploy tee /home/deploy/.ssh/authorized_k
 sudo chmod 700 /home/deploy/.ssh && sudo chmod 600 /home/deploy/.ssh/authorized_keys
 ```
 
-ให้ `deploy` รันได้เฉพาะคำสั่ง deploy ด้วย sudo (ไม่ต้องใส่รหัสผ่าน):
+ให้ `deploy` รัน `deploy.sh` ด้วย sudo ได้โดยไม่ต้องใส่รหัสผ่าน
+
+> ข้อควรรู้ตรง ๆ: กฎนี้ **ไม่ได้ทำให้ผู้ใช้ `deploy` ปลอดภัยกว่า root** เพราะ `deploy.sh` แตก tarball ที่ผู้ใช้นั้นส่งมาแล้วรันโค้ดใน tarball ในฐานะ `songreq` และคัดลอกสคริปต์ที่มากับ tarball ไปแทน `deploy.sh` ที่รันด้วย root ดังนั้นใครมี SSH key ของ `deploy` (คือ secret `DEPLOY_SSH_KEY` ใน GitHub) ถือว่ามีสิทธิ์ root บน VM เก็บ key นี้เป็นความลับสูงสุดและจำกัดคนที่แก้ workflow ได้
 
 ```bash
 sudo tee /etc/sudoers.d/songreq-deploy <<'EOF'
@@ -236,13 +241,17 @@ sudo visudo -cf /etc/sudoers.d/songreq-deploy
 
 สร้าง bucket ที่สอง `songreq-backups` **ห้ามผูก custom domain / ห้ามเปิด public** (เพราะ bucket สาธารณะแปลว่าทุกไฟล์ในนั้นใครก็ดาวน์โหลดได้ ห้ามเอา backup ไปไว้ใน `songreq-avatars`)
 
-### 4.3 API token
+### 4.3 API token (2 อัน)
 
-R2 > **Manage API Tokens > Create API token**: Permission **Object Read & Write**, เลือก **Apply to specific buckets only** = `songreq-avatars` และ `songreq-backups` กด Create แล้วจด
+**อันที่ 1 สำหรับแอป** (อวาตาร์):
+
+R2 > **Manage API Tokens > Create API token**: Permission **Object Read & Write**, เลือก **Apply to specific buckets only** = `songreq-avatars` เท่านั้น กด Create แล้วจด
 
 - Access Key ID -> `R2_ACCESS_KEY_ID`
 - Secret Access Key -> `R2_SECRET_ACCESS_KEY` (แสดงครั้งเดียว)
 - Account ID (หน้า R2 overview มุมขวา) -> `R2_ACCOUNT_ID`
+
+**อันที่ 2 สำหรับ backup (แนะนำ)**: สร้าง token ใหม่ Permission **Object Read & Write** เลือก bucket `songreq-backups` อย่างเดียว ใส่ค่าที่ได้ใน `R2_BACKUP_ACCESS_KEY_ID` และ `R2_BACKUP_SECRET_ACCESS_KEY` เพื่อให้ถ้า token ของแอปหลุด backup จะไม่ถูกลบหรือแก้ไปด้วย (ถ้าเว้นว่าง `backup.sh` จะ fallback ไปใช้ token ของแอป ซึ่งใช้ไม่ได้ถ้า token แอปไม่ครอบคลุม bucket backup)
 
 ---
 
@@ -295,6 +304,9 @@ R2_BUCKET=songreq-avatars
 R2_PUBLIC_URL=https://img.song.example.com
 # ใช้โดย backup.sh เท่านั้น (แอปไม่อ่านค่านี้)
 R2_BACKUP_BUCKET=songreq-backups
+# token แยก สิทธิ์เฉพาะ bucket songreq-backups (ดูขั้น 4.3) ถ้าเว้นว่าง backup.sh ใช้ R2_ACCESS_KEY_ID ของแอปแทน
+R2_BACKUP_ACCESS_KEY_ID=
+R2_BACKUP_SECRET_ACCESS_KEY=
 EOF
 sudo chmod 600 /opt/songreq/shared/.env
 sudo -u songreq openssl rand -base64 32   # เอาไปใส่ AUTH_SECRET
@@ -376,8 +388,18 @@ GitHub repo > **Settings > Secrets and variables > Actions > New repository secr
 | `DEPLOY_HOST` | `VM_IP` (ใช้ IP ตรง ไม่ใช่ชื่อโดเมนที่ผ่าน Cloudflare เพราะ Cloudflare ไม่ proxy SSH) |
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_SSH_KEY` | เนื้อหาไฟล์ `songreq-deploy` (private key ทั้งไฟล์ รวมบรรทัด BEGIN/END) |
+| `DEPLOY_HOST_KEY` | host key ของ VM (บรรทัดจาก `ssh-keyscan` ดูวิธีด้านล่าง) workflow จะ **ล้มเหลวถ้าไม่ตั้งค่านี้** เพื่อไม่ต้องเชื่อ host key แบบ trust-on-first-use |
 
 หลังตั้งเสร็จให้ลบไฟล์ `songreq-deploy` บนเครื่องคุณทิ้ง
+
+**วิธีได้ `DEPLOY_HOST_KEY`** (ทำครั้งเดียวบนเครื่องคุณ):
+
+```bash
+ssh-keyscan -t ed25519 VM_IP          # copy บรรทัด "VM_IP ssh-ed25519 AAAA..." ทั้งบรรทัดไปใส่ secret
+ssh-keyscan -t ed25519 VM_IP | ssh-keygen -lf -    # แสดง fingerprint SHA256:...
+```
+
+ตรวจว่า fingerprint ตรงกับของจริงก่อนเชื่อ (กันถูกดักกลางทาง): บน VM รัน `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` หรือดูจาก serial console ของ VM (Compute Engine > VM instances > `songreq` > **Serial port 1 (console)** ค้นหา `ssh-ed25519` ตอนบูต) ค่าสองที่ต้องตรงกัน
 
 ### 9.2 วาง deploy.sh ครั้งแรก (ครั้งเดียว)
 
@@ -402,9 +424,11 @@ GitHub > **Actions > Deploy > Run workflow** (ref = `main`) ขั้นตอ�
 
 1. Runner `npm ci`, ตรวจ typecheck + test, `npm run build` (output standalone) และ `deploy/package.sh` ทำ tarball
 2. scp ไป `/tmp/release.tgz` แล้วสั่ง `sudo bash /opt/songreq/deploy.sh /tmp/release.tgz` บน VM
-3. `deploy.sh` แตกไฟล์ไป `/opt/songreq/releases/<timestamp>` รัน migration สลับ symlink `/opt/songreq/current` `pm2 reload songreq --update-env` แล้ว poll `http://127.0.0.1:3000/api/health` นาน 30 วินาที
-4. ถ้า health check ไม่ผ่านจะ **สลับ symlink กลับ release เดิมและ reload ให้เอง** แล้ว job ล้มเหลว (ดู log ใน Actions และ `/var/log/songreq/app.err.log`)
-5. เก็บ release ล่าสุด 3 ชุด
+3. `deploy.sh` แตกไฟล์ไป `/opt/songreq/releases/<timestamp>` รัน migration สลับ symlink `/opt/songreq/current` `pm2 startOrRestart` (fork mode ไม่มี reload แบบไม่หยุด ดูหมายเหตุด้านล่าง) แล้ว poll `http://127.0.0.1:3000/api/health` นาน 30 วินาที
+4. ถ้า health check ไม่ผ่านจะ **สลับ symlink กลับ release เดิมและ restart ให้เอง** แล้ว job ล้มเหลว (ดู log ใน Actions และ `/var/log/songreq/app.err.log`) ถ้าเป็น deploy ครั้งแรกที่ยังไม่มี release เดิม สคริปต์จะหยุดแอปและลบ symlink `current` แล้วล้มเหลวพร้อมข้อความชัดเจน
+5. หลังผ่าน health check จึงอัปเดต `deploy.sh`, `backup.sh`, `ecosystem.config.cjs`, `crontab.txt` ใน `/opt/songreq` จาก release นี้ และเก็บ release ล่าสุด 3 ชุด (เรียงตามชื่อ timestamp) release ที่ล้มเหลวเก็บไว้ดูได้ 1 ชุด (`*.failed`)
+
+**ตรวจใน deploy ครั้งแรก**: ใช้ `pm2 startOrRestart` (ไม่ใช่ `startOrReload`) เพราะแอปรันแบบ fork mode ให้ดู log ของ job ว่าไม่มี error จาก pm2 และ `sudo -u songreq pm2 status` แสดง `songreq` เป็น `online` และถ้าแอปไม่ขึ้นหลังรีสตาร์ท ให้ดู `pm2 logs`
 
 กฎสำคัญ: migration รันก่อนสลับโค้ด ขณะที่โค้ดเก่ายังทำงานอยู่ ดังนั้น migration ต้อง **เพิ่มอย่างเดียว** (เพิ่มตาราง/คอลัมน์ที่ nullable) การลบหรือเปลี่ยนชื่อคอลัมน์ต้องแบ่งเป็น 2 release
 
@@ -423,7 +447,7 @@ sudo -u songreq pm2 logs songreq --lines 50 --nostream
 ```bash
 ls -1dt /opt/songreq/releases/*/                       # ดูรายการ release
 sudo ln -sfn /opt/songreq/releases/<timestamp> /opt/songreq/current
-sudo -u songreq pm2 reload songreq --update-env
+sudo -u songreq pm2 restart songreq --update-env
 ```
 
 ---
@@ -435,8 +459,7 @@ sudo -u songreq pm2 reload songreq --update-env
 ```bash
 sudo mkdir -p /var/log/songreq && sudo chown songreq:songreq /var/log/songreq
 
-# หลัง deploy ครั้งแรก: copy crontab จาก release มาติดตั้งให้ user songreq
-sudo cp /opt/songreq/current/deploy/crontab.txt /opt/songreq/crontab.txt
+# หลัง deploy ครั้งแรก deploy.sh วาง /opt/songreq/crontab.txt ให้แล้ว ติดตั้งให้ user songreq
 sudo -u songreq crontab /opt/songreq/crontab.txt
 sudo -u songreq crontab -l
 ```
@@ -455,10 +478,10 @@ sudo -u songreq crontab -l
 
 ```bash
 sudo -u songreq /opt/songreq/backup.sh
-sudo -u songreq aws s3 ls s3://songreq-backups/ --endpoint-url https://R2_ACCOUNT_ID.r2.cloudflarestorage.com
+tail -n 5 /var/log/songreq/backup.log
 ```
 
-(คำสั่ง `aws s3 ls` ต้องมี `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION=auto` ใน environment ของคุณ ใส่ชั่วคราวใน shell เช่น `export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=auto` และล้างทิ้งหลังใช้ด้วย `unset`)
+(การดูรายการไฟล์ใน R2 ใช้คำสั่งในขั้น 12 ข้อ 1)
 
 หมุนไฟล์ log:
 
@@ -493,8 +516,8 @@ EOF
 ซ้อมอย่างน้อยหนึ่งครั้งหลังตั้ง backup และทุกไตรมาส ซ้อมโดยกู้ลงฐานข้อมูลชื่ออื่น ไม่แตะฐานจริง:
 
 ```bash
-# 1) เลือกไฟล์ backup ล่าสุด (ใช้ credential เดียวกับขั้น 10)
-export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=auto
+# 1) ดาวน์โหลดไฟล์ backup ล่าสุดจาก R2 (ใช้ credential ของ token backup จากขั้น 4.3)
+export AWS_ACCESS_KEY_ID=R2_BACKUP_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=R2_BACKUP_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=auto
 EP=https://R2_ACCOUNT_ID.r2.cloudflarestorage.com
 aws s3 ls s3://songreq-backups/ --endpoint-url $EP
 aws s3 cp s3://songreq-backups/songreq-YYYYMMDD-HHMMSS.sql.gz /tmp/restore.sql.gz --endpoint-url $EP
