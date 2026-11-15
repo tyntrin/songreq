@@ -10,6 +10,7 @@ import {
   generatePublicId,
   getCurrentPerformer,
   listMyPerformers,
+  removeMember,
   requireRole,
   updatePerformer,
 } from "./service";
@@ -97,5 +98,20 @@ describe("performers service", () => {
 
   it("generatePublicId yields 10 chars [a-z0-9]", () => {
     expect(generatePublicId()).toMatch(/^[a-z0-9]{10}$/);
+  });
+});
+
+describe("removeMember", () => {
+  it("owner removes a member; cannot remove an owner or be a non-owner", async () => {
+    const db = await createTestDb();
+    for (const id of ["a", "b", "c"]) await db.insert(users).values({ id, email: `${id}@x.test` });
+    const p = (await createPerformer(db, "a", { displayName: "B", promptpayType: "phone", promptpayId: "0812345678" })).performer;
+    await db.insert(performerMembers).values({ performerId: p.id, userId: "b", role: "member" });
+    await db.insert(performerMembers).values({ performerId: p.id, userId: "c", role: "owner" });
+    await expect(removeMember(db, p.id, "b", "a")).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(removeMember(db, p.id, "a", "c")).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(removeMember(db, p.id, "a", "a")).rejects.toBeInstanceOf(ForbiddenError);
+    await removeMember(db, p.id, "a", "b");
+    expect((await listMyPerformers(db, "b")).length).toBe(0);
   });
 });

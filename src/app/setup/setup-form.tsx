@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { createPerformerAction, type SetupState } from "./actions";
 import type { PromptPayType } from "@/lib/promptpay/promptpay";
+import { AvatarUpload } from "@/components/AvatarUpload";
+import { storeAvatarAction } from "../dashboard/settings/actions";
 
 const KINDS: Array<{ id: PromptPayType; label: string; placeholder: string; sr: string }> = [
   { id: "phone", label: "เบอร์มือถือ", placeholder: "08x-xxx-xxxx", sr: "เบอร์มือถือพร้อมเพย์" },
@@ -23,6 +25,8 @@ export function SetupForm() {
           <h1 className="text-[26px] font-bold leading-tight">ตั้งค่าเพจของคุณ</h1>
           <p className="text-[15px] leading-normal text-muted">ลูกค้าจะเห็นชื่อนี้ตอนสแกน QR</p>
         </div>
+
+        <AvatarUpload action={storeAvatarAction} initialUrl={null} initial="+" hiddenName="avatarUrl" />
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="displayName" className="text-[15px] font-semibold">

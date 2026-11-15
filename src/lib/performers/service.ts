@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
-import { performerMembers, performers, setlists } from "@/lib/db/schema";
+import { performerMembers, performers, setlists, users } from "@/lib/db/schema";
 import {
   isValidPromptPay,
   normalizePromptPayId,
@@ -204,4 +204,45 @@ export async function updatePerformer(
   }
   if (Object.keys(set).length === 0) return;
   await db.update(performers).set(set).where(eq(performers.id, performerId));
+}
+
+/** Owner-only. An owner (including the caller) cannot be removed. */
+export async function removeMember(
+  db: Db,
+  performerId: string,
+  userId: string,
+  memberUserId: string,
+): Promise<void> {
+  await requireRole(db, performerId, userId, "owner");
+  const [target] = await db
+    .select({ role: performerMembers.role })
+    .from(performerMembers)
+    .where(and(eq(performerMembers.performerId, performerId), eq(performerMembers.userId, memberUserId)));
+  if (!target) return;
+  if (target.role === "owner") throw new ForbiddenError("Cannot remove an owner");
+  await db
+    .delete(performerMembers)
+    .where(and(eq(performerMembers.performerId, performerId), eq(performerMembers.userId, memberUserId)));
+}
+
+export async function listMembers(
+  db: Db,
+  performerId: string,
+): Promise<Array<{ userId: string; name: string; role: Role }>> {
+  const rows = await db
+    .select({
+      userId: performerMembers.userId,
+      name: users.name,
+      email: users.email,
+      role: performerMembers.role,
+    })
+    .from(performerMembers)
+    .innerJoin(users, eq(users.id, performerMembers.userId))
+    .where(eq(performerMembers.performerId, performerId))
+    .orderBy(asc(performerMembers.role), asc(users.name));
+  return rows.map((r) => ({
+    userId: r.userId,
+    name: r.name || r.email?.split("@")[0] || "ไม่ระบุชื่อ",
+    role: r.role,
+  }));
 }

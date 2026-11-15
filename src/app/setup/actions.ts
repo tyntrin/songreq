@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { requireUser } from "@/lib/auth/session";
 import { createPerformer, listMyPerformers } from "@/lib/performers/service";
 import { isValidPromptPay, type PromptPayType } from "@/lib/promptpay/promptpay";
+import { isOwnAvatarUrl } from "@/lib/storage";
 import { ValidationError, cleanText } from "@/lib/validation/text";
 
 export type SetupState = {
@@ -23,6 +24,8 @@ export async function createPerformerAction(
   const promptpayType: PromptPayType =
     formData.get("promptpayType") === "national_id" ? "national_id" : "phone";
   const promptpayId = String(formData.get("promptpayId") ?? "");
+  const rawAvatar = String(formData.get("avatarUrl") ?? "");
+  const avatarUrl = rawAvatar && isOwnAvatarUrl(rawAvatar) ? rawAvatar : null;
   const values = { displayName: rawName, promptpayType, promptpayId };
 
   // Already set up (e.g. double submit): do not create a second page.
@@ -40,7 +43,7 @@ export async function createPerformerAction(
   if (errors.displayName || errors.promptpayId) return { errors, values };
 
   try {
-    await createPerformer(db, user.id, { displayName: rawName, promptpayType, promptpayId });
+    await createPerformer(db, user.id, { displayName: rawName, promptpayType, promptpayId, avatarUrl });
   } catch (e) {
     if (e instanceof ValidationError) {
       return {
