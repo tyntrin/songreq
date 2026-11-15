@@ -16,6 +16,46 @@ export function clientIp(headers: Headers): string {
   return xff || "unknown";
 }
 
+/** Largest anonymous request body we read (a full 10-song request is well under 2 KB). */
+export const MAX_BODY_BYTES = 8192;
+
+/**
+ * Reads a JSON body of at most `max` bytes: 413 when content-length says more or the stream turns
+ * out longer (reading stops at the cap), 400 when it isn't JSON.
+ */
+export async function readJsonBody(
+  req: Request,
+  max = MAX_BODY_BYTES,
+): Promise<{ ok: true; body: unknown } | { ok: false; status: 400 | 413 }> {
+  const declared = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > max) return { ok: false, status: 413 };
+  if (!req.body) return { ok: false, status: 400 };
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => {});
+      return { ok: false, status: 413 };
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    bytes.set(c, offset);
+    offset += c.byteLength;
+  }
+  try {
+    return { ok: true, body: JSON.parse(new TextDecoder().decode(bytes)) };
+  } catch {
+    return { ok: false, status: 400 };
+  }
+}
+
 /** Maps a known request error to a response; rethrows unknown errors. */
 export function mapErrorToResponse(err: unknown): NextResponse {
   if (err instanceof NotFoundError) return NextResponse.json({ error: "not_found" }, { status: 404 });

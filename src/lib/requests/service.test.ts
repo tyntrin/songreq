@@ -171,4 +171,13 @@ describe("claimTip / status", () => {
     expect(s[0].items.map((i) => i.status)).toEqual(["seen", "seen"]);
     expect(await getDeviceStatus(db, pid, "nobody", NOW)).toEqual([]);
   });
+
+  it("status: items ordered by song title", async () => {
+    const z = (await addCustomSong(db, pid, "u1", { title: "ฮ", artist: "x" })).songId;
+    const k = (await addCustomSong(db, pid, "u1", { title: "ก", artist: "x" })).songId;
+    const c = (await addCustomSong(db, pid, "u1", { title: "C", artist: "x" })).songId;
+    await createRequest(db, ctx(), input({ songIds: [z, songB, k, c, songA] }));
+    const s = await getDeviceStatus(db, pid, "dev1", NOW);
+    expect(s[0].items.map((i) => i.title)).toEqual(["ก", "ฮ", "A", "B", "C"]); // Thai collation, as on the song list
+  });
 });

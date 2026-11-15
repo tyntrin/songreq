@@ -135,7 +135,7 @@ export function EditSetlist({
         ) : (
           <div className="flex flex-col gap-2">
             <p className="m-0 text-[14px] text-muted">
-              ลบ setlist นี้ QR ของ setlist นี้จะใช้ไม่ได้อีก ยืนยันไหม
+              QR นี้จะใช้ไม่ได้อีก ประวัติคำขอและสถิติยังอยู่ครบ
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button

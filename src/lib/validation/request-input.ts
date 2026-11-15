@@ -18,7 +18,7 @@ function textField(field: string, max: number) {
 export const requestInputSchema = z.object({
   clientRequestId: z.uuid(),
   songIds: z
-    .array(z.string().min(1))
+    .array(z.string().min(1).max(64))
     .min(1)
     .max(10)
     .refine((ids) => new Set(ids).size === ids.length, { message: "Duplicate songIds" }),

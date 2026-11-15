@@ -2,16 +2,17 @@
 
 import { getDb } from "@/lib/db/client";
 import { requireCurrentPerformer } from "@/lib/performers/current";
-import { blockDevice, hideRequest } from "@/lib/requests/feed";
+import { blockDeviceByRequest, hideItems } from "@/lib/requests/feed";
 
-export async function hideRequestsAction(requestIds: string[]): Promise<void> {
+/** "ซ่อนการ์ดนี้": hides only this card's items (other songs and tips of the same requests stay). */
+export async function hideItemsAction(itemIds: string[]): Promise<void> {
   const { user, performer } = await requireCurrentPerformer();
-  for (const id of requestIds.slice(0, 200)) {
-    await hideRequest(getDb(), performer.id, user.id, String(id));
-  }
+  if (!Array.isArray(itemIds)) return;
+  await hideItems(getDb(), performer.id, user.id, itemIds.slice(0, 500).map(String));
 }
 
-export async function blockDeviceAction(deviceId: string): Promise<void> {
+/** Blocks the device behind a request; the device id is resolved server-side. */
+export async function blockDeviceAction(requestId: string): Promise<void> {
   const { user, performer } = await requireCurrentPerformer();
-  await blockDevice(getDb(), performer.id, user.id, String(deviceId));
+  await blockDeviceByRequest(getDb(), performer.id, user.id, String(requestId));
 }

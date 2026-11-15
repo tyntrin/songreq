@@ -57,6 +57,7 @@ export async function createRequest(
       performerId: performers.id,
       accepting: performers.acceptingRequests,
       suspendedAt: performers.suspendedAt,
+      archivedAt: setlists.archivedAt,
     })
     .from(setlists)
     .innerJoin(performers, eq(performers.id, setlists.performerId))
@@ -73,6 +74,7 @@ export async function createRequest(
   const existing = await findExisting(db, performerId, ctx.deviceId, input.clientRequestId);
   if (existing) return existing;
 
+  if (sl.archivedAt) throw new NotFoundError(); // deleted setlist: its QR no longer works
   if (!sl.accepting) throw new ClosedError();
 
   const songIds = [...new Set(input.songIds)];
@@ -183,19 +185,30 @@ export async function getDeviceStatus(
     })
     .from(requestItems)
     .innerJoin(songs, eq(songs.id, requestItems.songId))
-    .where(inArray(requestItems.requestId, reqs.map((r) => r.id)))
-    .orderBy(asc(requestItems.id));
-  return reqs.map((r) => ({
-    requestId: r.id,
-    tipAmount: r.tipAmount,
-    tipClaimed: r.tipClaimedAt !== null,
-    items: items
-      .filter((i) => i.requestId === r.id)
-      .map((i) => ({
-        itemId: i.id,
-        title: i.title,
-        artist: i.artist,
-        status: i.seenAt ? ("seen" as const) : ("sent" as const),
-      })),
-  }));
+    .where(
+      and(
+        inArray(
+          requestItems.requestId,
+          reqs.map((r) => r.id),
+        ),
+        isNull(requestItems.hiddenAt),
+      ),
+    );
+  // Same order as the song list the customer picked from.
+  items.sort((a, b) => a.title.localeCompare(b.title, "th") || a.id.localeCompare(b.id));
+  return reqs
+    .map((r) => ({
+      requestId: r.id,
+      tipAmount: r.tipAmount,
+      tipClaimed: r.tipClaimedAt !== null,
+      items: items
+        .filter((i) => i.requestId === r.id)
+        .map((i) => ({
+          itemId: i.id,
+          title: i.title,
+          artist: i.artist,
+          status: i.seenAt ? ("seen" as const) : ("sent" as const),
+        })),
+    }))
+    .filter((r) => r.items.length > 0); // every song hidden by the musician = request hidden
 }

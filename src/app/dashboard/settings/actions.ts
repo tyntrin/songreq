@@ -116,7 +116,13 @@ export async function switchPerformerAction(fd: FormData): Promise<void> {
   const id = String(fd.get("performerId") ?? "");
   const mine = await listMyPerformers(getDb(), user.id);
   if (mine.some((p) => p.id === id)) {
-    (await cookies()).set(PERFORMER_COOKIE, id, { path: "/", httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365 });
+    (await cookies()).set(PERFORMER_COOKIE, id, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+    });
   }
   redirect("/dashboard/requests");
 }

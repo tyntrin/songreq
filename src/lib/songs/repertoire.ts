@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
 import { repertoire, setlistSongs, setlists, songs } from "@/lib/db/schema";
 import { ValidationError, cleanText } from "@/lib/validation/text";
@@ -27,12 +27,12 @@ function field(raw: unknown, name: string, max: number): string {
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-/** Append song to the performer's oldest setlist (created_at, then id). No-op if already there. */
+/** Append song to the performer's oldest active setlist (created_at, then id). No-op if already there. */
 async function appendToOldestSetlist(tx: Tx, performerId: string, songId: string): Promise<void> {
   const [sl] = await tx
     .select({ id: setlists.id })
     .from(setlists)
-    .where(eq(setlists.performerId, performerId))
+    .where(and(eq(setlists.performerId, performerId), isNull(setlists.archivedAt)))
     .orderBy(asc(setlists.createdAt), asc(setlists.id))
     .limit(1);
   if (!sl) return;

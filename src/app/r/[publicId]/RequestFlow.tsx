@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { t, type Locale } from "@/lib/i18n/customer";
+import { keepAttemptAfter } from "@/lib/requests/attempt";
 import { Header } from "./_components/Header";
 
 type Song = { id: string; title: string; artist: string; tags: string[] };
@@ -143,7 +144,8 @@ export function RequestFlow({ publicId, locale, displayName, avatarUrl, acceptin
       setError(t(locale, "networkError"));
       return; // keep selections and attempt id so a retry is idempotent
     }
-    attemptId.current = null;
+    // 5xx: the server may have stored it, so a retry must reuse the same id. 4xx/success: reset.
+    if (!keepAttemptAfter(res.status)) attemptId.current = null;
     if (res.status === 201) {
       const body = (await res.json()) as { requestId: string; tipAmount: number };
       try {

@@ -41,6 +41,7 @@ export async function getStats(
       and(
         eq(requests.performerId, performerId),
         isNull(requests.hiddenAt),
+        isNull(requestItems.hiddenAt),
         gte(requests.createdAt, start),
         lt(requests.createdAt, end),
       ),

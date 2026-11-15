@@ -137,6 +137,8 @@ export const setlists = pgTable("setlists", {
     .references(() => performers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   publicId: text("public_id").notNull().unique(),
+  /** Soft delete: an archived setlist's QR stops working, its request history stays. */
+  archivedAt: ts("archived_at"),
   createdAt: createdAt(),
 });
 
@@ -193,6 +195,8 @@ export const requestItems = pgTable(
       .notNull()
       .references(() => songs.id, { onDelete: "cascade" }),
     seenAt: ts("seen_at"),
+    /** Musician hid this song card ("ซ่อนการ์ดนี้"); excluded from feed, stats and customer status. */
+    hiddenAt: ts("hidden_at"),
   },
   (t) => [index("request_items_request_idx").on(t.requestId)],
 );

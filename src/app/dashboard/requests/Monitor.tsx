@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import type { FeedCardJson, FeedPayload } from "@/lib/requests/feed";
-import { blockDeviceAction, hideRequestsAction } from "./actions";
+import { useLiveEvents } from "@/lib/realtime/use-live";
+import { nightRange } from "@/lib/time/night";
+import { blockDeviceAction, hideItemsAction } from "./actions";
 
 const PILL_MS = 60_000;
 const svg = {
@@ -16,6 +19,8 @@ const svg = {
 } as const;
 
 const cardKey = (c: FeedCardJson) => `${c.songId}|${c.latestAt}`;
+/** prevKeys filter that never matches: the next feed sets the baseline without chiming. */
+const NO_BASELINE = "\u0000none";
 
 export function relativeTime(fromIso: string, now: number): string {
   const min = Math.floor((now - new Date(fromIso).getTime()) / 60000);
@@ -58,6 +63,7 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
   );
   const [audioReady, setAudioReady] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [authLost, setAuthLost] = useState(false);
 
   const setlistRef = useRef<string | null>(null);
   const soundRef = useRef(true);
@@ -68,6 +74,7 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
   });
   const sentIds = useRef(new Set<string>());
   const reqSeq = useRef(0);
+  const dataRef = useRef(initial);
 
   useEffect(() => {
     soundRef.current = soundOn;
@@ -149,7 +156,12 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
       const res = await fetch(`/api/dashboard/feed${filter ? `?setlist=${encodeURIComponent(filter)}` : ""}`, {
         cache: "no-store",
       });
+      if (res.status === 401 || res.status === 403) {
+        setAuthLost(true);
+        return;
+      }
       if (!res.ok || seq !== reqSeq.current) return;
+      setAuthLost(false);
       apply((await res.json()) as FeedPayload, filter);
     } catch {
       /* keep last known state */
@@ -159,20 +171,42 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
     refetchRef.current = () => void doRefetch();
   }, [doRefetch]);
 
-  // realtime + fallback polling + visibility refetch + wake lock
+  // realtime (SSE with reconnect/backoff, polling fallback, refetch on open and on becoming visible)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => refetchRef.current(), 300);
+  }, []);
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
+  useLiveEvents("/api/dashboard/stream", scheduleRefetch, { pollMs: 15_000 });
+
+  // the night rolls over at 06:00 Bangkok: start the new night with a clean slate
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      const wait = nightRange(new Date()).end.getTime() - Date.now() + 1000;
+      timer = setTimeout(() => {
+        prevKeys.current = { filter: NO_BASELINE, keys: new Set() };
+        sentIds.current.clear();
+        setFirstSeen(new Map());
+        setNow(Date.now());
+        refetchRef.current();
+        arm();
+      }, wait);
+    };
+    arm();
+    return () => clearTimeout(timer);
+  }, []);
+
+  // keep the screen awake while the monitor is visible
   useEffect(() => {
     let alive = true;
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    let poll: ReturnType<typeof setInterval> | null = null;
     let lock: WakeLockSentinel | null = null;
-    const schedule = () => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => refetchRef.current(), 300);
-    };
-    const stopPoll = () => {
-      if (poll) clearInterval(poll);
-      poll = null;
-    };
     const requestLock = async () => {
       try {
         if (document.visibilityState === "visible" && !lock) {
@@ -186,37 +220,23 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
         /* ignore */
       }
     };
-    const es = new EventSource("/api/dashboard/stream");
-    es.onopen = () => {
-      stopPoll();
-      schedule();
-    };
-    es.onmessage = schedule;
-    es.onerror = () => {
-      poll ??= setInterval(() => refetchRef.current(), 15000);
-    };
     const onVis = () => {
-      if (document.visibilityState === "visible") {
-        schedule();
-        void requestLock();
-      }
+      if (document.visibilityState === "visible") void requestLock();
     };
     document.addEventListener("visibilitychange", onVis);
     void requestLock();
     return () => {
       alive = false;
-      es.close();
-      stopPoll();
-      if (debounce) clearTimeout(debounce);
       document.removeEventListener("visibilitychange", onVis);
       void lock?.release().catch(() => {});
     };
   }, []);
 
-  // after each render: mark new cards seen once
-  useEffect(() => {
+  // mark new cards seen once — only while the musician can actually see the screen
+  const flushSeen = useCallback(() => {
+    if (document.visibilityState !== "visible") return;
     const toSend: string[] = [];
-    for (const c of data.cards) {
+    for (const c of dataRef.current.cards) {
       if (!c.isNew) continue;
       for (const id of c.itemIds) {
         if (!sentIds.current.has(id)) {
@@ -225,7 +245,6 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
         }
       }
     }
-    if (toSend.length === 0) return;
     for (let i = 0; i < toSend.length; i += 200) {
       const chunk = toSend.slice(i, i + 200);
       fetch("/api/dashboard/seen", {
@@ -238,7 +257,16 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
         })
         .catch(() => chunk.forEach((id) => sentIds.current.delete(id)));
     }
-  }, [data]);
+  }, []);
+  useEffect(() => {
+    dataRef.current = data;
+    flushSeen();
+  }, [data, flushSeen]);
+  useEffect(() => {
+    const onVis = () => flushSeen();
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [flushSeen]);
 
   const pickSetlist = (id: string | null) => {
     setlistRef.current = id;
@@ -291,6 +319,18 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
           </svg>
         </button>
       </div>
+
+      {authLost && (
+        <div role="alert" className="flex flex-col gap-1 rounded-xl border border-[#F2A38C] bg-surface px-4 py-3">
+          <div className="text-[15px] font-semibold text-[#F2A38C]">เซสชันหมดอายุ — เข้าสู่ระบบใหม่</div>
+          <Link
+            href="/login?next=/dashboard/requests"
+            className="flex min-h-11 items-center text-[15px] font-semibold text-accent underline"
+          >
+            เข้าสู่ระบบ
+          </Link>
+        </div>
+      )}
 
       {soundOn && !audioReady && (
         <button
@@ -376,27 +416,28 @@ export function Monitor({ initial, serverNow }: { initial: FeedPayload; serverNo
                       type="button"
                       className="min-h-11 rounded-lg px-3 text-left text-[15px] hover:bg-[#26211D]"
                       onClick={async () => {
+                        if (!confirm(`ซ่อนการ์ด "${c.title}" ออกจากจอ? (เฉพาะเพลงนี้)`)) return;
                         setMenuFor(null);
-                        await hideRequestsAction(c.requestIds);
+                        await hideItemsAction(c.itemIds);
                         refetchRef.current();
                       }}
                     >
-                      ซ่อน
+                      ซ่อนการ์ดนี้
                     </button>
                     <button
                       type="button"
-                      disabled={c.deviceIds.length !== 1}
+                      disabled={c.deviceCount !== 1}
                       className="min-h-11 rounded-lg px-3 text-left text-[15px] text-[#F08A7E] hover:bg-[#26211D] disabled:text-placeholder"
                       onClick={async () => {
                         if (!confirm("บล็อกเครื่องนี้? เครื่องนี้จะขอเพลงไม่ได้อีก")) return;
                         setMenuFor(null);
-                        await blockDeviceAction(c.deviceIds[0]);
+                        await blockDeviceAction(c.latestRequestId);
                         refetchRef.current();
                       }}
                     >
                       บล็อกเครื่องนี้
                     </button>
-                    {c.deviceIds.length > 1 && <div className="px-3 pb-2 text-xs text-muted">ขอหลายเครื่อง</div>}
+                    {c.deviceCount > 1 && <div className="px-3 pb-2 text-xs text-muted">ขอหลายเครื่อง</div>}
                   </div>
                 )}
                 {c.latestMessage && (

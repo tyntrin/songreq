@@ -7,8 +7,18 @@ import { createPerformer } from "@/lib/performers/service";
 import { addCustomSong } from "@/lib/songs/repertoire";
 import { createRateLimiter } from "@/lib/ratelimit/limiter";
 import { bus, deviceChannel, performerChannel, type BusEvent } from "@/lib/realtime/bus";
-import { claimTip, createRequest } from "./service";
-import { aggregateFeed, blockDevice, getTonightFeed, hideRequest, markSeen, type FeedRow } from "./feed";
+import { claimTip, createRequest, getDeviceStatus } from "./service";
+import { getStats } from "@/lib/stats/service";
+import {
+  aggregateFeed,
+  blockDeviceByRequest,
+  getFeedPayload,
+  getTonightFeed,
+  hideItems,
+  hideRequest,
+  markSeen,
+  type FeedRow,
+} from "./feed";
 
 const T = (m: number) => new Date(Date.UTC(2026, 10, 16, 15, m));
 let n = 0;
@@ -62,6 +72,10 @@ describe("aggregateFeed", () => {
     expect(cards[0].tipTotal).toBe(50);
     expect(cards[0].isNew).toBe(false);
     expect(cards[0].requestIds.sort()).toEqual(["Q", "R"]);
+    expect(cards[0].latestRequestId).toBe("Q");
+    expect(cards[0].deviceCount).toBe(2);
+    expect(cards[2].deviceCount).toBe(1);
+    expect(cards[0]).not.toHaveProperty("deviceIds");
   });
 });
 
@@ -127,7 +141,7 @@ describe("feed db", () => {
     expect(events).toEqual([{ type: "items.seen" }]);
   });
 
-  it("hideRequest/blockDevice are scoped and publish", async () => {
+  it("hideRequest is scoped and publishes", async () => {
     const a = await make("d1", [songA]);
     const events: BusEvent[] = [];
     const off = bus.subscribe(performerChannel(pid), (e) => events.push(e));
@@ -137,9 +151,83 @@ describe("feed db", () => {
     off();
     expect((await db.select().from(requests))[0].hiddenAt).not.toBeNull();
     expect(events).toEqual([{ type: "request.updated" }]);
-    await blockDevice(db, pid, "u1", "d1");
-    await blockDevice(db, pid, "u1", "d1");
+  });
+
+  it("blockDeviceByRequest resolves the device server-side, scoped to the performer", async () => {
+    const a = await make("d1", [songA]);
+    await blockDeviceByRequest(db, pid, "u1", a.requestId);
+    await blockDeviceByRequest(db, pid, "u1", a.requestId);
+    expect(await db.select().from(blockedDevices)).toEqual([
+      { performerId: pid, deviceId: "d1", createdAt: expect.any(Date) },
+    ]);
+    // non-member, or a request of another performer: nothing happens
+    await expect(blockDeviceByRequest(db, pid, "u2", a.requestId)).rejects.toThrow();
+    await blockDeviceByRequest(db, pid2, "u2", a.requestId);
+    await blockDeviceByRequest(db, pid, "u1", "no-such-request");
     expect(await db.select().from(blockedDevices)).toHaveLength(1);
-    await expect(blockDevice(db, pid, "u2", "d1")).rejects.toThrow();
+  });
+
+  it("feed payload never exposes device ids", async () => {
+    await make("secret-device-1", [songA]);
+    const payload = await getFeedPayload(db, pid, NOW);
+    expect(JSON.stringify(payload)).not.toContain("secret-device-1");
+    expect(payload.cards[0].deviceCount).toBe(1);
+    expect(typeof payload.cards[0].latestRequestId).toBe("string");
+  });
+
+  it("hideItems: hiding one song of a 2-song request keeps the other card and the tip", async () => {
+    const a = await make("d1", [songA, songB], 50);
+    await claimTip(db, a.requestId, "d1", NOW);
+    let feed = await getTonightFeed(db, pid, NOW);
+    const cardB = feed.cards.find((c) => c.songId === songB)!;
+    const perf: BusEvent[] = [];
+    const dev: BusEvent[] = [];
+    const off1 = bus.subscribe(performerChannel(pid), (e) => perf.push(e));
+    const off2 = bus.subscribe(deviceChannel(pid, "d1"), (e) => dev.push(e));
+    await hideItems(db, pid, "u1", cardB.itemIds);
+    off1();
+    off2();
+    expect(perf).toEqual([{ type: "request.updated" }]);
+    expect(dev).toEqual([{ type: "request.updated" }]);
+    feed = await getTonightFeed(db, pid, NOW);
+    expect(feed.cards.map((c) => c.songId)).toEqual([songA]);
+    expect(feed.cards[0].tipTotal).toBe(50);
+    expect(feed.requestCount).toBe(1);
+    expect(feed.tipTotal).toBe(50);
+    const stats = await getStats(db, pid, "night", NOW);
+    expect(stats.requestCount).toBe(1);
+    expect(stats.tipTotal).toBe(50);
+    const status = await getDeviceStatus(db, pid, "d1", NOW);
+    expect(status[0].items.map((i) => i.title)).toEqual(["A"]);
+  });
+
+  it("hideItems: hiding the only song of a tipped request removes the tip from totals", async () => {
+    const a = await make("d1", [songA], 50);
+    await claimTip(db, a.requestId, "d1", NOW);
+    await make("d2", [songA, songB], 0);
+    const before = await getTonightFeed(db, pid, NOW);
+    expect(before.tipTotal).toBe(50);
+    const itemOfA = (await db.select().from(requestItems).where(eq(requestItems.requestId, a.requestId)))[0];
+    await hideItems(db, pid, "u1", [itemOfA.id]);
+    const feed = await getTonightFeed(db, pid, NOW);
+    expect(feed.tipTotal).toBe(0);
+    expect(feed.requestCount).toBe(2);
+    expect(feed.cards.find((c) => c.songId === songA)!.tipTotal).toBe(0);
+    expect((await getStats(db, pid, "night", NOW)).tipTotal).toBe(0);
+    // the customer no longer sees that request at all
+    expect(await getDeviceStatus(db, pid, "d1", NOW)).toEqual([]);
+  });
+
+  it("hideItems is scoped to the performer and requires membership", async () => {
+    await make("d1", [songA]);
+    const ids = (await db.select().from(requestItems)).map((i) => i.id);
+    await expect(hideItems(db, pid, "u2", ids)).rejects.toThrow();
+    const events: BusEvent[] = [];
+    const off = bus.subscribe(performerChannel(pid2), (e) => events.push(e));
+    await hideItems(db, pid2, "u2", ids);
+    off();
+    expect(events).toEqual([]);
+    expect((await db.select().from(requestItems))[0].hiddenAt).toBeNull();
+    await hideItems(db, pid, "u1", []);
   });
 });

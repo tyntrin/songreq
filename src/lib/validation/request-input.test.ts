@@ -24,6 +24,10 @@ describe("parseRequestInput", () => {
   it("accepts a valid body", () => {
     expect(parseRequestInput(base)).toEqual(base);
   });
+  it("rejects a songId longer than 64 chars", () => {
+    expect(fieldOf({ ...base, songIds: ["x".repeat(65)] })).toBe("songIds");
+    expect(parseRequestInput({ ...base, songIds: ["x".repeat(64)] }).songIds).toHaveLength(1);
+  });
   it("rejects 41-char name", () => {
     expect(fieldOf({ ...base, name: "x".repeat(41) })).toBe("name");
   });

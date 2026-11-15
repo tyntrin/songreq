@@ -33,7 +33,10 @@ export type FeedCard = {
   isNew: boolean;
   itemIds: string[];
   requestIds: string[];
-  deviceIds: string[];
+  /** Latest request on this card: the block action resolves its device server-side. */
+  latestRequestId: string;
+  /** Distinct customer devices behind this card. Device ids never leave the server. */
+  deviceCount: number;
 };
 
 const ANON = "ไม่ระบุชื่อ";
@@ -80,7 +83,8 @@ export function aggregateFeed(rows: FeedRow[]): FeedCard[] {
       isNew: sorted.some((r) => r.seenAt === null),
       itemIds: sorted.map((r) => r.itemId),
       requestIds: [...new Set(sorted.map((r) => r.requestId))],
-      deviceIds: [...new Set(sorted.map((r) => r.deviceId))],
+      latestRequestId: latest.requestId,
+      deviceCount: new Set(sorted.map((r) => r.deviceId)).size,
     });
   }
   return cards.sort(
@@ -118,6 +122,7 @@ export async function getTonightFeed(
       and(
         eq(requests.performerId, performerId),
         isNull(requests.hiddenAt),
+        isNull(requestItems.hiddenAt),
         gte(requests.createdAt, start),
         lt(requests.createdAt, end),
         setlistId ? eq(requests.setlistId, setlistId) : undefined,
@@ -181,14 +186,59 @@ export async function hideRequest(
   if (updated.length > 0) bus.publish(performerChannel(performerId), { type: "request.updated" });
 }
 
-export async function blockDevice(
+/**
+ * "ซ่อนการ์ดนี้": hides only these items (one song card), scoped to the performer. Other songs and
+ * the tip of the same request stay; a request whose items are all hidden drops out of tip totals.
+ */
+export async function hideItems(
   db: Db,
   performerId: string,
   userId: string,
-  deviceId: string,
+  itemIds: string[],
 ): Promise<void> {
   await requireRole(db, performerId, userId, "member");
-  await db.insert(blockedDevices).values({ performerId, deviceId }).onConflictDoNothing();
+  if (itemIds.length === 0) return;
+  const updated = await db
+    .update(requestItems)
+    .set({ hiddenAt: new Date() })
+    .where(
+      and(
+        inArray(requestItems.id, itemIds),
+        isNull(requestItems.hiddenAt),
+        sql`${requestItems.requestId} in (select ${requests.id} from ${requests} where ${requests.performerId} = ${performerId})`,
+      ),
+    )
+    .returning({ requestId: requestItems.requestId });
+  if (updated.length === 0) return;
+  bus.publish(performerChannel(performerId), { type: "request.updated" });
+  const reqs = await db
+    .select({ deviceId: requests.deviceId })
+    .from(requests)
+    .where(
+      inArray(
+        requests.id,
+        updated.map((u) => u.requestId),
+      ),
+    );
+  for (const d of new Set(reqs.map((r) => r.deviceId))) {
+    bus.publish(deviceChannel(performerId, d), { type: "request.updated" });
+  }
+}
+
+/** Blocks the device behind one of the performer's requests (the device id stays server-side). */
+export async function blockDeviceByRequest(
+  db: Db,
+  performerId: string,
+  userId: string,
+  requestId: string,
+): Promise<void> {
+  await requireRole(db, performerId, userId, "member");
+  const [row] = await db
+    .select({ deviceId: requests.deviceId })
+    .from(requests)
+    .where(and(eq(requests.id, requestId), eq(requests.performerId, performerId)));
+  if (!row) return;
+  await db.insert(blockedDevices).values({ performerId, deviceId: row.deviceId }).onConflictDoNothing();
 }
 
 export type FeedCardJson = Omit<FeedCard, "latestAt"> & { latestAt: string };
@@ -209,7 +259,7 @@ export async function getFeedPayload(
   const lists = await db
     .select({ id: setlists.id, name: setlists.name })
     .from(setlists)
-    .where(eq(setlists.performerId, performerId))
+    .where(and(eq(setlists.performerId, performerId), isNull(setlists.archivedAt)))
     .orderBy(setlists.createdAt, setlists.id);
   const setlistId = lists.some((l) => l.id === setlistParam) ? (setlistParam as string) : undefined;
   const feed = await getTonightFeed(db, performerId, now, setlistId);

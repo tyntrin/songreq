@@ -1,5 +1,6 @@
 import { count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
+import { bus, performerChannel } from "@/lib/realtime/bus";
 import { performerMembers, performers, requestItems, requests, songs } from "@/lib/db/schema";
 
 export async function getAdminOverview(db: Db, now: Date) {
@@ -54,8 +55,12 @@ export async function setSuspended(db: Db, performerId: string, suspended: boole
   await db.update(performers).set({ suspendedAt: suspended ? now : null }).where(eq(performers.id, performerId));
 }
 
-/** Hard delete; request_items cascade. */
+/** Hard delete; request_items cascade. The performer's monitor is told to refetch. */
 export async function deleteRequest(db: Db, requestId: string) {
-  await db.delete(requests).where(eq(requests.id, requestId));
+  const deleted = await db
+    .delete(requests)
+    .where(eq(requests.id, requestId))
+    .returning({ performerId: requests.performerId });
+  for (const d of deleted) bus.publish(performerChannel(d.performerId), { type: "request.updated" });
 }
 

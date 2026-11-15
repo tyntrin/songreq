@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useLiveEvents } from "@/lib/realtime/use-live";
 import { t, type Locale } from "@/lib/i18n/customer";
 import type { DeviceRequestStatus } from "@/lib/requests/service";
 
@@ -26,33 +27,28 @@ export function StatusView({
 }) {
   const [reqs, setReqs] = useState(initial);
 
+  const alive = useRef(true);
   useEffect(() => {
-    let alive = true;
-    let poll: ReturnType<typeof setInterval> | null = null;
-    const refetch = async () => {
-      try {
-        const res = await fetch(`/api/r/${publicId}/status`, { cache: "no-store" });
-        if (res.ok && alive) setReqs(((await res.json()) as { requests: DeviceRequestStatus[] }).requests);
-      } catch {
-        /* keep last known state */
-      }
-    };
-    const stopPoll = () => {
-      if (poll) clearInterval(poll);
-      poll = null;
-    };
-    const es = new EventSource(`/api/r/${publicId}/stream`);
-    es.onopen = stopPoll;
-    es.onmessage = () => void refetch();
-    es.onerror = () => {
-      poll ??= setInterval(() => void refetch(), 15000);
-    };
+    alive.current = true;
     return () => {
-      alive = false;
-      es.close();
-      stopPoll();
+      alive.current = false;
     };
+  }, []);
+  const seq = useRef(0);
+  // Runs on every stream message, on (re)open — e.g. after the phone wakes — and when the tab
+  // becomes visible again, so the status never stays stale.
+  const refetch = useCallback(async () => {
+    const mine = ++seq.current;
+    try {
+      const res = await fetch(`/api/r/${publicId}/status`, { cache: "no-store" });
+      if (!res.ok) return;
+      const body = (await res.json()) as { requests: DeviceRequestStatus[] };
+      if (alive.current && mine === seq.current) setReqs(body.requests);
+    } catch {
+      /* keep last known state */
+    }
   }, [publicId]);
+  useLiveEvents(`/api/r/${publicId}/stream`, () => void refetch(), { pollMs: 15_000 });
 
   const items = reqs.flatMap((r) => r.items);
   const claimed = reqs.filter((r) => r.tipClaimed && r.tipAmount > 0);
@@ -72,33 +68,35 @@ export function StatusView({
         <section className="flex flex-col gap-2">
           <h2 className="m-0 text-sm font-semibold text-muted">{t(locale, "yourSongs")}</h2>
           {items.length === 0 && <p className="m-0 text-sm text-muted">{t(locale, "noRequestsYet")}</p>}
-          {items.map((it) => (
-            <div
-              key={it.itemId}
-              className="flex items-center gap-3.5 rounded-[14px] border border-line bg-surface px-4 py-3.5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-base font-semibold">{it.title}</div>
-                <div className="text-sm text-muted">{it.artist}</div>
-              </div>
-              {it.status === "seen" ? (
-                <div className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#2B2218] px-2.5 py-1 text-[13px] font-semibold text-accent">
-                  <svg width={14} height={14} stroke="#F5B544" strokeWidth={2.4} {...iconProps}>
-                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  {t(locale, "statusSeen")}
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {items.map((it) => (
+              <li
+                key={it.itemId}
+                className="flex items-center gap-3.5 rounded-[14px] border border-line bg-surface px-4 py-3.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-base font-semibold">{it.title}</div>
+                  <div className="text-sm text-muted">{it.artist}</div>
                 </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#26211D] px-2.5 py-1 text-[13px] font-semibold text-[#C9C0B5]">
-                  <svg width={14} height={14} stroke="#C9C0B5" strokeWidth={2.4} {...iconProps}>
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                  </svg>
-                  {t(locale, "statusSent")}
-                </div>
-              )}
-            </div>
-          ))}
+                {it.status === "seen" ? (
+                  <div className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#2B2218] px-2.5 py-1 text-[13px] font-semibold text-accent">
+                    <svg width={14} height={14} stroke="#F5B544" strokeWidth={2.4} {...iconProps}>
+                      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    {t(locale, "statusSeen")}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#26211D] px-2.5 py-1 text-[13px] font-semibold text-[#C9C0B5]">
+                    <svg width={14} height={14} stroke="#C9C0B5" strokeWidth={2.4} {...iconProps}>
+                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
+                    {t(locale, "statusSent")}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
 
         {claimed.map((r) => (

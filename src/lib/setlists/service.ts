@@ -1,8 +1,9 @@
-import { and, asc, count, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import type { Db } from "@/lib/db/types";
 import {
   performers,
   repertoire,
+  requestItems,
   requests,
   setlistSongs,
   setlists,
@@ -57,16 +58,21 @@ export async function renameSetlist(
     .where(and(eq(setlists.id, setlistId), eq(setlists.performerId, performerId)));
 }
 
+/**
+ * Soft delete: sets archived_at. The QR stops working (getPublicSetlist/createRequest treat it as
+ * not found) but setlist_songs, requests, tips and stats stay. The last active setlist can't go.
+ */
 export async function deleteSetlist(db: Db, performerId: string, setlistId: string): Promise<void> {
   await db.transaction(async (tx) => {
-    const mine = await tx
+    const active = await tx
       .select({ id: setlists.id })
       .from(setlists)
-      .where(eq(setlists.performerId, performerId));
-    if (!mine.some((s) => s.id === setlistId)) return;
-    if (mine.length <= 1) throw new ValidationError("setlist", "Cannot delete the last setlist");
+      .where(and(eq(setlists.performerId, performerId), isNull(setlists.archivedAt)));
+    if (!active.some((s) => s.id === setlistId)) return;
+    if (active.length <= 1) throw new ValidationError("setlist", "Cannot delete the last setlist");
     await tx
-      .delete(setlists)
+      .update(setlists)
+      .set({ archivedAt: new Date() })
       .where(and(eq(setlists.id, setlistId), eq(setlists.performerId, performerId)));
   });
 }
@@ -82,7 +88,9 @@ export async function setSetlistSongs(
     const [sl] = await tx
       .select({ id: setlists.id })
       .from(setlists)
-      .where(and(eq(setlists.id, setlistId), eq(setlists.performerId, performerId)));
+      .where(
+        and(eq(setlists.id, setlistId), eq(setlists.performerId, performerId), isNull(setlists.archivedAt)),
+      );
     if (!sl) return;
     if (ordered.length > 0) {
       const owned = await tx
@@ -110,7 +118,7 @@ export async function listSetlists(
   const lists = await db
     .select({ id: setlists.id, name: setlists.name, publicId: setlists.publicId })
     .from(setlists)
-    .where(eq(setlists.performerId, performerId))
+    .where(and(eq(setlists.performerId, performerId), isNull(setlists.archivedAt)))
     .orderBy(asc(setlists.createdAt), asc(setlists.id));
   if (lists.length === 0) return [];
   const ids = lists.map((l) => l.id);
@@ -120,12 +128,16 @@ export async function listSetlists(
     .where(inArray(setlistSongs.setlistId, ids))
     .groupBy(setlistSongs.setlistId);
   const { start, end } = nightRange(now);
+  // Same meaning as the monitor's "คำขอ": visible request items tonight.
   const reqCounts = await db
     .select({ id: requests.setlistId, n: count() })
-    .from(requests)
+    .from(requestItems)
+    .innerJoin(requests, eq(requests.id, requestItems.requestId))
     .where(
       and(
         inArray(requests.setlistId, ids),
+        isNull(requests.hiddenAt),
+        isNull(requestItems.hiddenAt),
         gte(requests.createdAt, start),
         lt(requests.createdAt, end),
       ),
@@ -168,7 +180,7 @@ export async function getPublicSetlist(db: Db, publicId: string): Promise<Public
     })
     .from(setlists)
     .innerJoin(performers, eq(performers.id, setlists.performerId))
-    .where(eq(setlists.publicId, publicId));
+    .where(and(eq(setlists.publicId, publicId), isNull(setlists.archivedAt)));
   if (!row || row.suspendedAt || !row.promptpayId || !row.promptpayType) return null;
 
   const rows = await db
