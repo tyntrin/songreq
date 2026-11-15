@@ -52,6 +52,8 @@ export function SongsClient({ items }: { items: RepertoireItem[] }) {
     return () => clearTimeout(timer);
   }, [q]);
 
+  const owned = new Set(items.map((i) => i.itunesTrackId));
+
   function onQuery(value: string) {
     setQ(value);
     if (Array.from(value.trim()).length < 2) {
@@ -66,19 +68,14 @@ export function SongsClient({ items }: { items: RepertoireItem[] }) {
     setAdded((s) => new Set(s).add(h.itunesTrackId));
     setMessage(null);
     startTransition(async () => {
-      const r = await addItunesSongAction({
-        itunesTrackId: h.itunesTrackId,
-        title: h.title,
-        artist: h.artist,
+      const r = await addItunesSongAction(h.itunesTrackId);
+      // On success the revalidated `items` prop now carries the song; either way drop the optimistic flag.
+      setAdded((s) => {
+        const n = new Set(s);
+        n.delete(h.itunesTrackId);
+        return n;
       });
-      if (!r.ok) {
-        setAdded((s) => {
-          const n = new Set(s);
-          n.delete(h.itunesTrackId);
-          return n;
-        });
-        setMessage(r.error);
-      }
+      if (!r.ok) setMessage(r.error);
     });
   }
 
@@ -134,7 +131,7 @@ export function SongsClient({ items }: { items: RepertoireItem[] }) {
           <p className="py-2 text-[15px] text-muted">ไม่พบเพลงที่ค้นหา</p>
         )}
         {hits?.map((h) => {
-          const have = h.inRepertoire || added.has(h.itunesTrackId);
+          const have = owned.has(String(h.itunesTrackId)) || added.has(h.itunesTrackId);
           return (
             <div
               key={h.itunesTrackId}

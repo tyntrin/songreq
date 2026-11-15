@@ -7,6 +7,7 @@ import type { SongHit } from "./itunes";
 export type RepertoireItem = {
   id: string;
   songId: string;
+  itunesTrackId: string | null;
   title: string;
   artist: string;
   songKey: string | null;
@@ -48,7 +49,7 @@ async function appendToOldestSetlist(tx: Tx, performerId: string, songId: string
 async function addToRepertoire(
   db: Db,
   performerId: string,
-  song: { id: string; title: string; artist: string },
+  song: { id: string; title: string; artist: string; itunesTrackId: string | null },
 ): Promise<RepertoireItem> {
   return db.transaction(async (tx) => {
     await tx.insert(repertoire).values({ performerId, songId: song.id }).onConflictDoNothing();
@@ -60,6 +61,7 @@ async function addToRepertoire(
     return {
       id: row.id,
       songId: song.id,
+      itunesTrackId: song.itunesTrackId,
       title: song.title,
       artist: song.artist,
       songKey: row.songKey,
@@ -79,7 +81,7 @@ export async function addItunesSong(db: Db, performerId: string, hit: SongHit): 
     .values({ title, artist, source: "itunes", itunesTrackId: trackId })
     .onConflictDoNothing({ target: songs.itunesTrackId });
   const [song] = await db
-    .select({ id: songs.id, title: songs.title, artist: songs.artist })
+    .select({ id: songs.id, title: songs.title, artist: songs.artist, itunesTrackId: songs.itunesTrackId })
     .from(songs)
     .where(eq(songs.itunesTrackId, trackId));
   return addToRepertoire(db, performerId, song);
@@ -96,7 +98,7 @@ export async function addCustomSong(
   const [song] = await db
     .insert(songs)
     .values({ title, artist, source: "custom", createdBy: userId })
-    .returning({ id: songs.id, title: songs.title, artist: songs.artist });
+    .returning({ id: songs.id, title: songs.title, artist: songs.artist, itunesTrackId: songs.itunesTrackId });
   return addToRepertoire(db, performerId, song);
 }
 
@@ -105,6 +107,7 @@ export async function listRepertoire(db: Db, performerId: string): Promise<Reper
     .select({
       id: repertoire.id,
       songId: songs.id,
+      itunesTrackId: songs.itunesTrackId,
       title: songs.title,
       artist: songs.artist,
       songKey: repertoire.songKey,

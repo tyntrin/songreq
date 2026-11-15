@@ -10,6 +10,7 @@ import {
   updateRepertoireItem,
   type RepertoireItem,
 } from "@/lib/songs/repertoire";
+import { UpstreamError, lookupItunesTrack } from "@/lib/songs/itunes";
 import { ValidationError } from "@/lib/validation/text";
 
 export type ActionResult<T = undefined> =
@@ -29,18 +30,22 @@ function fail(e: unknown): { ok: false; error: string } {
   throw e;
 }
 
-export async function addItunesSongAction(hit: {
-  itunesTrackId: number;
-  title: string;
-  artist: string;
-}): Promise<ActionResult<RepertoireItem>> {
+export async function addItunesSongAction(
+  itunesTrackId: number,
+): Promise<ActionResult<RepertoireItem>> {
   const { performer } = await requireCurrentPerformer();
+  let hit;
   try {
-    const item = await addItunesSong(getDb(), performer.id, {
-      itunesTrackId: Number(hit.itunesTrackId),
-      title: String(hit.title),
-      artist: String(hit.artist),
-    });
+    hit = await lookupItunesTrack(Number(itunesTrackId));
+  } catch (e) {
+    if (e instanceof UpstreamError) {
+      return { ok: false, error: "ค้นหาไม่ได้ตอนนี้ ลองใหม่อีกครั้ง หรือเพิ่มเอง" };
+    }
+    throw e;
+  }
+  if (!hit) return { ok: false, error: "ไม่พบเพลงนี้ใน iTunes" };
+  try {
+    const item = await addItunesSong(getDb(), performer.id, hit);
     revalidatePath("/dashboard/songs");
     return { ok: true, item };
   } catch (e) {
