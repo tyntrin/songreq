@@ -44,7 +44,7 @@ function makeSlug(name: string): string {
   return ascii ? `${ascii.slice(0, 40)}-${randomChars(4)}` : `p-${randomChars(6)}`;
 }
 
-function isUniqueViolation(e: unknown): boolean {
+export function isUniqueViolation(e: unknown): boolean {
   let cur: unknown = e;
   for (let i = 0; i < 4 && cur; i++) {
     if ((cur as { code?: string }).code === "23505") return true;
