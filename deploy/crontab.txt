@@ -1,0 +1,10 @@
+# Crontab for the `songreq` user:  sudo -u songreq crontab /opt/songreq/crontab.txt
+# The VM timezone is Asia/Bangkok (timedatectl set-timezone Asia/Bangkok), so these are Bangkok times.
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# 03:30 nightly: pg_dump -> gzip -> Cloudflare R2, delete backups older than 14 days
+30 3 * * * /opt/songreq/backup.sh >> /var/log/songreq/backup.log 2>&1
+
+# 04:00 nightly: PDPA purge of requester name/message older than 90 days
+0 4 * * * cd /opt/songreq/current && /usr/bin/node --env-file=/opt/songreq/shared/.env deploy-purge-pii.mjs >> /var/log/songreq/purge-pii.log 2>&1

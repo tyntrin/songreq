@@ -1,0 +1,21 @@
+# /etc/caddy/Caddyfile
+# TLS uses a Cloudflare Origin Certificate (Cloudflare SSL mode: Full (strict)),
+# so Caddy must not try to get Let's Encrypt certificates.
+{
+	auto_https off
+}
+
+:443 {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+
+	# No `encode` here: Cloudflare compresses at the edge, and compressing
+	# text/event-stream at the origin can delay SSE frames.
+
+	reverse_proxy 127.0.0.1:3000 {
+		# SSE: send every chunk to the client immediately (no buffering).
+		flush_interval -1
+	}
+}
+# The app reads the real visitor IP from the cf-connecting-ip header that Cloudflare
+# sets and Caddy passes through untouched. That is only trustworthy because the
+# firewall lets only Cloudflare IP ranges reach port 443 (see the runbook).
