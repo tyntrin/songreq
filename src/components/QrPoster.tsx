@@ -214,6 +214,7 @@ export function QrPoster({
       <input
         ref={inputRef}
         readOnly
+        data-testid="setlist-url"
         value={url}
         tabIndex={-1}
         aria-hidden="true"

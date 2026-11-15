@@ -12,6 +12,13 @@ const plex = IBM_Plex_Sans_Thai({
 export const metadata: Metadata = {
   title: "Song Request",
   description: "Request songs from the musician on stage",
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {
